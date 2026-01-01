@@ -8,6 +8,7 @@ export default [
   ...tseslint.configs.recommended,
   {
     files: ["**/*.{ts,tsx}"],
+    ...react.configs.flat.recommended,
     plugins: {
       react,
       "react-hooks": reactHooks,
@@ -19,8 +20,14 @@ export default [
         },
       },
     },
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
     rules: {
-      "react/react-in-jsx-scope": "off",
+      ...react.configs.flat.recommended.rules,
+      "react/react-in-jsx-scope": "off", // Not needed in Next.js with new JSX transform
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
     },
