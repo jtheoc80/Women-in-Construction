@@ -4,7 +4,25 @@ import { NextResponse, type NextRequest } from 'next/server'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
+// Primary domain for canonical redirects
+const PRIMARY_DOMAIN = 'sitesistersconstruction.com'
+
 export async function middleware(request: NextRequest) {
+  const hostname = request.headers.get('host') || ''
+  
+  // Redirect non-primary domains to the primary domain (except localhost/preview deployments)
+  if (
+    hostname &&
+    !hostname.includes('localhost') &&
+    !hostname.includes('vercel.app') &&
+    !hostname.includes(PRIMARY_DOMAIN)
+  ) {
+    const url = new URL(request.url)
+    url.hostname = PRIMARY_DOMAIN
+    url.port = ''
+    return NextResponse.redirect(url, { status: 301 })
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
