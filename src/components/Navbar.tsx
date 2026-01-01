@@ -42,7 +42,7 @@ export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
           {showPostButton && (
             <Button
               onClick={onPostListing}
-              className="bg-indigo-600 px-3 text-sm text-white hover:bg-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-400 sm:px-5 sm:text-base"
+              className="bg-teal-600 px-3 text-sm text-white hover:bg-teal-500 focus-visible:ring-2 focus-visible:ring-teal-400 sm:px-5 sm:text-base"
             >
               <span className="hidden sm:inline">+ Post Listing</span>
               <span className="sm:hidden">+ Post</span>
@@ -63,7 +63,7 @@ export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
               </div>
 
               <details className="relative">
-                <summary className="list-none cursor-pointer select-none rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+                <summary className="list-none cursor-pointer select-none rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-white ring-1 ring-white/15">
                     {initials}
                   </div>
@@ -93,7 +93,7 @@ export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
           ) : (
             <Button
               asChild
-              className="border border-white/20 bg-white/10 text-sm text-white hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-indigo-400"
+              className="border border-white/20 bg-transparent text-sm text-white hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-teal-400"
             >
               <Link href={`/signup?next=${encodeURIComponent(currentUrl)}`}>Sign in</Link>
             </Button>
