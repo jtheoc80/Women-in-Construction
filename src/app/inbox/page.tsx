@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import InboxClient, { type InboxPageData } from './inbox-client'
 
+export const dynamic = 'force-dynamic'
+
 export default async function InboxPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -10,7 +12,7 @@ export default async function InboxPage() {
     redirect('/signup?next=/inbox')
   }
 
-  const [{ data: pendingRequests }, { data: threads }] = await Promise.all([
+  const [pendingRequestsRes, threadsRes] = await Promise.all([
     supabase
       .from('listing_requests')
       .select('id, listing_id, from_user_id, to_user_id, status, message, created_at, listings(id, city, area)')
@@ -25,9 +27,11 @@ export default async function InboxPage() {
       .limit(50),
   ])
 
-  const requestUserIds = (pendingRequests || []).map((r) => r.from_user_id)
-  const threadUserIds =
-    (threads || []).flatMap((t) => (t.thread_participants || []).map((p) => p.user_id))
+  const pendingRequests = (pendingRequestsRes.data || []) as InboxPageData['pendingRequests']
+  const threads = (threadsRes.data || []) as InboxPageData['threads']
+
+  const requestUserIds = pendingRequests.map((r) => r.from_user_id)
+  const threadUserIds = threads.flatMap((t) => t.thread_participants.map((p) => p.user_id))
   const uniqueUserIds = Array.from(new Set([...requestUserIds, ...threadUserIds].filter(Boolean)))
 
   const { data: profileDisplayRows } = uniqueUserIds.length
@@ -41,8 +45,8 @@ export default async function InboxPage() {
 
   const pageData: InboxPageData = {
     userId: user.id,
-    pendingRequests: (pendingRequests || []) as InboxPageData['pendingRequests'],
-    threads: (threads || []) as InboxPageData['threads'],
+    pendingRequests,
+    threads,
     profileById,
   }
 

@@ -676,26 +676,27 @@ function ListingDrawer({
 
     try {
       const { error } = await supabase
-        .from('intro_requests')
+        .from('listing_requests')
         .insert({
           listing_id: listing.id,
-          requester_user_id: user.id,
+          from_user_id: user.id,
+          to_user_id: listing.user_id,
           message: introMessage,
           status: 'pending',
         })
 
       if (error) {
-        console.error('Error creating intro request:', error)
-        alert('Error sending intro request: ' + error.message)
+        console.error('Error creating listing request:', error)
+        alert('Error sending request: ' + error.message)
         return
       }
 
-      alert('Intro request sent! The listing owner will be notified.')
+      alert('Request sent! The listing owner will see it in their Inbox.')
       setShowIntroModal(false)
       setIntroMessage('')
     } catch (err) {
       console.error('Error:', err)
-      alert('An error occurred while sending the intro request')
+      alert('An error occurred while sending the request')
     }
   }
 

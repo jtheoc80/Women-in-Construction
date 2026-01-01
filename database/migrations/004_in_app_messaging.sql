@@ -18,20 +18,6 @@ create table if not exists public.threads (
 
 alter table public.threads enable row level security;
 
-drop policy if exists "Participants can view threads" on public.threads;
-create policy "Participants can view threads"
-  on public.threads
-  for select
-  to authenticated
-  using (
-    exists (
-      select 1
-      from public.thread_participants tp
-      where tp.thread_id = threads.id
-        and tp.user_id = auth.uid()
-    )
-  );
-
 -- ============================================================
 -- 2) THREAD PARTICIPANTS
 -- ============================================================
@@ -69,6 +55,21 @@ create policy "Users can update their own last_read_at"
   to authenticated
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
+
+-- Threads are only visible to participants
+drop policy if exists "Participants can view threads" on public.threads;
+create policy "Participants can view threads"
+  on public.threads
+  for select
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.thread_participants tp
+      where tp.thread_id = threads.id
+        and tp.user_id = auth.uid()
+    )
+  );
 
 -- ============================================================
 -- 3) MESSAGES
