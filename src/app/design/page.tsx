@@ -251,6 +251,9 @@ export default function DesignPage() {
           Women-first roommate matching for construction &amp; data center projects. 
           No public contact info. Intros by request.
         </p>
+        <a href="/jobsites" style={styles.exploreButton}>
+          🎯 Explore Housing by Jobsite
+        </a>
       </section>
 
       {/* Filters */}
@@ -670,6 +673,18 @@ const styles: { [key: string]: React.CSSProperties } = {
     maxWidth: '600px',
     margin: '0 auto',
     lineHeight: 1.6,
+  },
+  exploreButton: {
+    display: 'inline-block',
+    marginTop: '24px',
+    background: '#f97316',
+    color: 'white',
+    padding: '14px 28px',
+    borderRadius: '8px',
+    fontSize: '1rem',
+    fontWeight: 600,
+    textDecoration: 'none',
+    transition: 'background 0.2s',
   },
   filters: {
     background: 'white',

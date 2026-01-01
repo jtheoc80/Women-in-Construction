@@ -30,3 +30,20 @@ a {
     opacity: 0.5;
   }
 }
+
+/* Spinner animation */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mobile-first responsive utilities */
+@media (max-width: 640px) {
+  .hero-title {
+    font-size: 1.5rem !important;
+  }
+}
