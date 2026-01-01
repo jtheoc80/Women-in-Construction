@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/AuthContext'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { Mail, Phone } from 'lucide-react'
 
 type AuthStep = 'send' | 'verify'
 
@@ -186,10 +187,16 @@ export function AuthDialog() {
         }} className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-slate-100">
             <TabsTrigger value="email" className="data-[state=active]:bg-white">
-              📧 Email
+              <span className="inline-flex items-center gap-2">
+                <Mail className="h-4 w-4 text-slate-600" aria-hidden="true" />
+                Email
+              </span>
             </TabsTrigger>
             <TabsTrigger value="phone" className="data-[state=active]:bg-white">
-              📱 Phone
+              <span className="inline-flex items-center gap-2">
+                <Phone className="h-4 w-4 text-slate-600" aria-hidden="true" />
+                Phone
+              </span>
             </TabsTrigger>
           </TabsList>
 

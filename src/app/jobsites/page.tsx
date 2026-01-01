@@ -5,6 +5,14 @@ import { useRouter } from 'next/navigation'
 import type { Jobsite } from '@/lib/supabase'
 import { Navbar } from '@/components/Navbar'
 import { useGatedAction } from '@/contexts/AuthContext'
+import {
+  ArrowRight,
+  Building2,
+  Factory,
+  HardHat,
+  LoaderCircle,
+  Search,
+} from 'lucide-react'
 
 export default function JobsitesIndexPage() {
   const router = useRouter()
@@ -58,43 +66,58 @@ export default function JobsitesIndexPage() {
   }
 
   return (
-    <div style={styles.page}>
-      {/* Header */}
+    <div className="min-h-screen bg-slate-50">
       <Navbar onPostListing={handlePostListing} />
 
-      {/* Hero */}
-      <section style={styles.hero}>
-        <h1 style={styles.heroTitle}>Explore Jobsites</h1>
-        <p style={styles.heroSubtitle}>
-          Find housing near major construction and data center projects
-        </p>
+      <section className="bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+        <div className="mx-auto max-w-6xl px-4 py-10 text-center">
+          <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+            Explore Jobsites
+          </h1>
+          <p className="mt-3 text-base text-white/70">
+            Find housing near major construction and data center projects
+          </p>
+        </div>
       </section>
 
-      {/* Search */}
-      <section style={styles.searchSection}>
-        <input
-          type="text"
-          placeholder="Search by jobsite name, city, or state..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          style={styles.searchInput}
-        />
+      <section className="border-b border-slate-200 bg-slate-50/60">
+        <div className="mx-auto max-w-6xl px-4 py-6">
+          <label htmlFor="jobsite-search" className="sr-only">
+            Search jobsites
+          </label>
+          <div className="relative mx-auto max-w-2xl">
+            <Search
+              className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+              aria-hidden="true"
+            />
+            <input
+              id="jobsite-search"
+              type="text"
+              placeholder="Search by jobsite name, city, or state..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-slate-900 shadow-sm placeholder:text-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            />
+          </div>
+        </div>
       </section>
 
-      {/* Main Content */}
-      <main style={styles.main}>
+      <main className="mx-auto max-w-6xl px-4 py-10">
         {loading ? (
-          <div style={styles.loadingState}>
-            <div style={styles.spinner} />
-            <p>Loading jobsites...</p>
+          <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-600">
+            <LoaderCircle className="h-6 w-6 animate-spin text-indigo-500" />
+            <p className="text-sm">Loading jobsites...</p>
           </div>
         ) : searchQuery ? (
           // Search Results
-          <section style={styles.section}>
-            <h2 style={styles.sectionTitle}>
-              Search Results ({filteredJobsites.length})
+          <section className="space-y-6">
+            <h2 className="text-lg font-semibold text-slate-900">
+              Search Results{' '}
+              <span className="font-normal text-slate-500">
+                ({filteredJobsites.length})
+              </span>
             </h2>
-            <div style={styles.jobsitesGrid}>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               {filteredJobsites.map((jobsite) => (
                 <JobsiteCard
                   key={jobsite.id}
@@ -103,7 +126,7 @@ export default function JobsitesIndexPage() {
                 />
               ))}
               {filteredJobsites.length === 0 && (
-                <p style={styles.emptyState}>
+                <p className="col-span-full py-12 text-center text-slate-600">
                   No jobsites found matching &quot;{searchQuery}&quot;
                 </p>
               )}
@@ -111,29 +134,37 @@ export default function JobsitesIndexPage() {
           </section>
         ) : (
           // Grouped by State
-          Object.entries(groupedJobsites)
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([state, stateJobsites]) => (
-              <section key={state} style={styles.section}>
-                <h2 style={styles.sectionTitle}>{stateNames[state] || state}</h2>
-                <div style={styles.jobsitesGrid}>
-                  {stateJobsites.map((jobsite) => (
-                    <JobsiteCard
-                      key={jobsite.id}
-                      jobsite={jobsite}
-                      onClick={() => router.push(`/jobsites/${jobsite.slug}`)}
-                    />
-                  ))}
-                </div>
-              </section>
-            ))
+          <div className="space-y-10">
+            {Object.entries(groupedJobsites)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([state, stateJobsites]) => (
+                <section key={state} className="space-y-6">
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    {stateNames[state] || state}
+                  </h2>
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    {stateJobsites.map((jobsite) => (
+                      <JobsiteCard
+                        key={jobsite.id}
+                        jobsite={jobsite}
+                        onClick={() => router.push(`/jobsites/${jobsite.slug}`)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
+          </div>
         )}
       </main>
 
       {/* Footer */}
-      <footer style={styles.footer}>
-        <p>© 2026 SiteSisters. All rights reserved.</p>
-        <p style={styles.footerTagline}>Built for women who build.</p>
+      <footer className="border-t border-white/10 bg-slate-950">
+        <div className="mx-auto max-w-6xl px-4 py-10 text-center">
+          <p className="text-sm text-white/70">
+            © 2026 SiteSisters. All rights reserved.
+          </p>
+          <p className="mt-2 text-sm text-white/60">Built for women who build.</p>
+        </div>
       </footer>
     </div>
   )
@@ -157,203 +188,51 @@ function JobsiteCard({
   jobsite: Jobsite
   onClick: () => void
 }) {
+  const Icon = getJobsiteIcon(jobsite)
   return (
-    <button onClick={onClick} style={cardStyles.container}>
-      <div style={cardStyles.iconContainer}>
-        <span style={cardStyles.icon}>🏗️</span>
+    <button
+      onClick={onClick}
+      aria-label={`View jobsite: ${jobsite.name}`}
+      className="group flex w-full items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-slate-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
+    >
+      <div className="rounded-xl bg-slate-100 p-3 text-slate-700">
+        <Icon className="h-6 w-6" aria-hidden="true" />
       </div>
-      <div style={cardStyles.content}>
-        <h3 style={cardStyles.name}>{jobsite.name}</h3>
-        <p style={cardStyles.location}>
+
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate text-base font-semibold text-slate-900">
+          {jobsite.name}
+        </h3>
+        <p className="mt-1 text-sm text-slate-600">
           {jobsite.city}, {jobsite.state}
         </p>
         {jobsite.description && (
-          <p style={cardStyles.description}>{jobsite.description}</p>
+          <p className="mt-1 line-clamp-1 text-sm text-slate-500">
+            {jobsite.description}
+          </p>
         )}
       </div>
-      <div style={cardStyles.arrow}>→</div>
+
+      <ArrowRight
+        className="h-5 w-5 flex-shrink-0 text-slate-400 transition group-hover:translate-x-0.5"
+        aria-hidden="true"
+      />
     </button>
   )
 }
 
-const cardStyles = {
-  container: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    background: 'white',
-    border: '1px solid #e2e8f0',
-    borderRadius: '12px',
-    padding: '20px',
-    cursor: 'pointer',
-    textAlign: 'left',
-    transition: 'transform 0.2s, box-shadow 0.2s',
-    width: '100%',
-  } as React.CSSProperties,
-  iconContainer: {
-    width: '56px',
-    height: '56px',
-    background: '#fef3c7',
-    borderRadius: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  } as React.CSSProperties,
-  icon: {
-    fontSize: '1.75rem',
-  } as React.CSSProperties,
-  content: {
-    flex: 1,
-    minWidth: 0,
-  } as React.CSSProperties,
-  name: {
-    fontSize: '1.1rem',
-    fontWeight: 600,
-    color: '#1e293b',
-    marginBottom: '4px',
-  } as React.CSSProperties,
-  location: {
-    fontSize: '0.9rem',
-    color: '#64748b',
-    marginBottom: '4px',
-  } as React.CSSProperties,
-  description: {
-    fontSize: '0.85rem',
-    color: '#94a3b8',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  } as React.CSSProperties,
-  arrow: {
-    fontSize: '1.25rem',
-    color: '#94a3b8',
-    flexShrink: 0,
-  } as React.CSSProperties,
-}
+function getJobsiteIcon(jobsite: Jobsite) {
+  const haystack = `${jobsite.name} ${jobsite.description || ''}`.toLowerCase()
 
-const styles = {
-  page: {
-    minHeight: '100vh',
-    background: '#f8fafc',
-  } as React.CSSProperties,
-  header: {
-    background: '#1e293b',
-    padding: '16px 24px',
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
-  } as React.CSSProperties,
-  headerContent: {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  } as React.CSSProperties,
-  backButton: {
-    background: 'transparent',
-    border: 'none',
-    color: 'white',
-    fontSize: '0.95rem',
-    cursor: 'pointer',
-    padding: '8px 12px',
-    borderRadius: '6px',
-  } as React.CSSProperties,
-  logo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-  } as React.CSSProperties,
-  logoIcon: {
-    fontSize: '1.8rem',
-  } as React.CSSProperties,
-  logoText: {
-    color: 'white',
-    fontSize: '1.5rem',
-    fontWeight: 700,
-    letterSpacing: '-0.5px',
-  } as React.CSSProperties,
-  hero: {
-    background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
-    padding: '40px 24px',
-    textAlign: 'center',
-  } as React.CSSProperties,
-  heroTitle: {
-    color: 'white',
-    fontSize: '2rem',
-    fontWeight: 700,
-    marginBottom: '8px',
-  } as React.CSSProperties,
-  heroSubtitle: {
-    color: '#94a3b8',
-    fontSize: '1rem',
-  } as React.CSSProperties,
-  searchSection: {
-    background: 'white',
-    padding: '20px 24px',
-    borderBottom: '1px solid #e2e8f0',
-  } as React.CSSProperties,
-  searchInput: {
-    width: '100%',
-    maxWidth: '600px',
-    margin: '0 auto',
-    display: 'block',
-    padding: '12px 16px',
-    border: '1px solid #cbd5e1',
-    borderRadius: '8px',
-    fontSize: '1rem',
-    outline: 'none',
-  } as React.CSSProperties,
-  main: {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '24px',
-  } as React.CSSProperties,
-  loadingState: {
-    textAlign: 'center',
-    padding: '60px 20px',
-    color: '#64748b',
-  } as React.CSSProperties,
-  spinner: {
-    width: '40px',
-    height: '40px',
-    border: '3px solid #e2e8f0',
-    borderTopColor: '#f97316',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-    margin: '0 auto 16px',
-  } as React.CSSProperties,
-  section: {
-    marginBottom: '32px',
-  } as React.CSSProperties,
-  sectionTitle: {
-    fontSize: '1.25rem',
-    fontWeight: 600,
-    color: '#1e293b',
-    marginBottom: '16px',
-  } as React.CSSProperties,
-  jobsitesGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-    gap: '16px',
-  } as React.CSSProperties,
-  emptyState: {
-    textAlign: 'center',
-    padding: '40px 20px',
-    color: '#64748b',
-    gridColumn: '1 / -1',
-  } as React.CSSProperties,
-  footer: {
-    background: '#1e293b',
-    padding: '32px 24px',
-    textAlign: 'center',
-    color: '#94a3b8',
-    marginTop: '40px',
-  } as React.CSSProperties,
-  footerTagline: {
-    marginTop: '8px',
-    fontSize: '0.9rem',
-    fontStyle: 'italic',
-  } as React.CSSProperties,
+  if (haystack.includes('data center') || haystack.includes('datacenter')) {
+    return Building2
+  }
+  if (
+    haystack.includes('plant') ||
+    haystack.includes('factory') ||
+    haystack.includes('manufactur')
+  ) {
+    return Factory
+  }
+  return HardHat
 }

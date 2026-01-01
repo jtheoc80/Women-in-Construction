@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/AuthContext'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { Lock } from 'lucide-react'
 
 export function CompleteProfileSheet() {
   const { profileSheetOpen, setProfileSheetOpen, user, profile, refreshProfile } = useAuth()
@@ -145,7 +146,10 @@ export function CompleteProfileSheet() {
           </div>
 
           <div className="bg-slate-50 rounded-lg p-4 text-sm text-slate-600">
-            <p className="font-medium text-slate-800 mb-2">🔒 Your privacy matters</p>
+            <p className="mb-2 flex items-center gap-2 font-medium text-slate-800">
+              <Lock className="h-4 w-4 text-slate-600" aria-hidden="true" />
+              Your privacy matters
+            </p>
             <ul className="space-y-1 text-xs">
               <li>• Your email and phone are <strong>never</strong> shown publicly</li>
               <li>• Contact info is only shared after mutual intro acceptance</li>
