@@ -388,68 +388,48 @@ export default function DesignPage() {
           <h2 style={styles.featureTitle}>
             Built for tough schedules and tougher housing markets.
           </h2>
-          <div style={styles.featureGrid}>
-            <div style={styles.featureCard}>
-              <h3 style={styles.featureCardTitle}>Jobsite hubs</h3>
-              <p style={styles.featureCardText}>
-                Start with the jobsite—see nearby towns, commute areas, and housing options.
-              </p>
+          <div style={styles.filters}>
+            <div style={styles.filterRow}>
+              <div style={styles.filterGroup}>
+                <label style={styles.filterLabel}>City / Region</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Phoenix, Austin, Columbus..."
+                  value={cityFilter}
+                  onChange={(e) => setCityFilter(e.target.value)}
+                  style={styles.filterInput}
+                />
+              </div>
+              <div style={styles.filterGroup}>
+                <label style={styles.filterLabel}>Max Rent</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 1000"
+                  value={rentMaxFilter}
+                  onChange={(e) =>
+                    setRentMaxFilter(e.target.value ? parseInt(e.target.value) : '')
+                  }
+                  style={styles.filterInput}
+                />
+              </div>
+              <div style={styles.filterGroup}>
+                <label style={styles.filterLabel}>Room Type</label>
+                <select
+                  value={roomTypeFilter}
+                  onChange={(e) => setRoomTypeFilter(e.target.value)}
+                  style={styles.filterSelect}
+                >
+                  <option value="all">All Types</option>
+                  <option value="private_room">Private Room</option>
+                  <option value="shared_room">Shared Room</option>
+                  <option value="entire_place">Entire Place</option>
+                </select>
+              </div>
+              <button style={styles.searchButton} onClick={handleSearch}>
+                Search
+              </button>
             </div>
-            <div style={styles.featureCard}>
-              <h3 style={styles.featureCardTitle}>Shift-aware matches</h3>
-              <p style={styles.featureCardText}>
-                Find roommates who fit real work patterns—early starts, nights, rotating schedules.
-              </p>
-            </div>
-            <div style={styles.featureCard}>
-              <h3 style={styles.featureCardTitle}>Safe introductions</h3>
-              <p style={styles.featureCardText}>
-                Request an intro, review the message, and share details only when ready.
-              </p>
-            </div>
           </div>
-        </div>
-      </section>
-
-      {/* Filters */}
-      <section style={styles.filters}>
-        <div style={styles.filterRow}>
-          <div style={styles.filterGroup}>
-            <label style={styles.filterLabel}>City / Region</label>
-            <input
-              type="text"
-              placeholder="e.g. Phoenix, Austin, Columbus..."
-              value={cityFilter}
-              onChange={(e) => setCityFilter(e.target.value)}
-              style={styles.filterInput}
-            />
-          </div>
-          <div style={styles.filterGroup}>
-            <label style={styles.filterLabel}>Max Rent</label>
-            <input
-              type="number"
-              placeholder="e.g. 1000"
-              value={rentMaxFilter}
-              onChange={(e) => setRentMaxFilter(e.target.value ? parseInt(e.target.value) : '')}
-              style={styles.filterInput}
-            />
-          </div>
-          <div style={styles.filterGroup}>
-            <label style={styles.filterLabel}>Room Type</label>
-            <select
-              value={roomTypeFilter}
-              onChange={(e) => setRoomTypeFilter(e.target.value)}
-              style={styles.filterSelect}
-            >
-              <option value="all">All Types</option>
-              <option value="private_room">Private Room</option>
-              <option value="shared_room">Shared Room</option>
-              <option value="entire_place">Entire Place</option>
-            </select>
-          </div>
-          <button style={styles.searchButton} onClick={handleSearch}>
-            Search
-          </button>
         </div>
       </section>
 
@@ -889,41 +869,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 700,
     color: '#0f172a',
     textAlign: 'center',
-    marginBottom: '20px',
-  },
-  featureGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-    gap: '16px',
-  },
-  featureCard: {
-    background: 'white',
-    border: '1px solid #e2e8f0',
-    borderRadius: '12px',
-    padding: '16px',
-    boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
-  },
-  featureCardTitle: {
-    margin: 0,
-    fontSize: '0.95rem',
-    fontWeight: 700,
-    color: '#0f172a',
-    marginBottom: '6px',
-  },
-  featureCardText: {
-    margin: 0,
-    color: '#64748b',
-    lineHeight: 1.5,
-    fontSize: '0.9rem',
+    marginBottom: '0',
   },
   filters: {
     background: 'white',
     padding: '24px',
-    borderBottom: '1px solid #e2e8f0',
+    border: '1px solid #e2e8f0',
+    borderRadius: '12px',
+    boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+    marginTop: '24px',
   },
   filterRow: {
-    maxWidth: '1200px',
-    margin: '0 auto',
     display: 'flex',
     gap: '16px',
     alignItems: 'flex-end',
