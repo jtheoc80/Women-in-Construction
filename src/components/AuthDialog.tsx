@@ -30,6 +30,10 @@ export function AuthDialog() {
   const [message, setMessage] = useState<string | null>(null)
 
   const supabase = getSupabaseBrowserClient()
+  const emailRedirectTo =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/auth/callback`
+      : undefined
 
   const resetState = () => {
     setStep('send')
@@ -57,13 +61,16 @@ export function AuthDialog() {
         email: email.trim(),
         options: {
           shouldCreateUser: true,
+          emailRedirectTo,
         },
       })
 
       if (error) {
         setError(error.message)
       } else {
-        setMessage('Check your email for a verification code!')
+        setMessage(
+          'Check your email for a verification code (or click the sign-in link).'
+        )
         setStep('verify')
       }
     } catch {
@@ -251,6 +258,10 @@ export function AuthDialog() {
                 {error && (
                   <p className="text-sm text-red-600">{error}</p>
                 )}
+                <p className="text-xs text-slate-500">
+                  If your email contains a sign-in link instead of a code, click
+                  it to finish signing in.
+                </p>
                 <Button
                   type="submit"
                   disabled={loading || !otp}
