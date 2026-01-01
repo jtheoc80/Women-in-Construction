@@ -350,16 +350,13 @@ export default function DesignPage() {
       {/* Hero */}
       <section style={styles.hero}>
         <h1 style={styles.heroTitle}>A housing network for women who build.</h1>
-        <p style={styles.heroSubtitle}>
-          Find roommates near construction and data center jobsites—built for long shifts,
-          remote towns, and tight housing markets. No public contact info. Intros by request.
+        <p style={styles.heroSubhead}>
+          Find roommates near construction and data center jobsites.
         </p>
 
-        <div style={styles.heroPills} aria-label="Trust and safety">
-          <span style={styles.heroPill}>Private by default</span>
-          <span style={styles.heroPill}>Request-to-connect</span>
-          <span style={styles.heroPill}>Report + moderation</span>
-        </div>
+        <p style={styles.heroTrustLine}>
+          Private by default • Request-to-connect • Report + moderation
+        </p>
 
         <div style={styles.heroCtas}>
           <a href="/jobsites" style={styles.primaryCta}>
@@ -381,7 +378,7 @@ export default function DesignPage() {
         </div>
 
         <p style={styles.heroMicrocopy}>
-          You control who can contact you. Details are shared only if you accept.
+          No public contact info. Details shared only if you accept.
         </p>
       </section>
 
@@ -395,22 +392,19 @@ export default function DesignPage() {
             <div style={styles.featureCard}>
               <h3 style={styles.featureCardTitle}>Jobsite hubs</h3>
               <p style={styles.featureCardText}>
-                Start with the jobsite. See nearby towns, commute-friendly areas, and the kind of
-                housing people are actually finding.
+                Start with the jobsite—see nearby towns, commute areas, and housing options.
               </p>
             </div>
             <div style={styles.featureCard}>
               <h3 style={styles.featureCardTitle}>Shift-aware matches</h3>
               <p style={styles.featureCardText}>
-                Find roommates who fit real work patterns—early starts, nights, rotating schedules,
-                and move-in windows tied to project timelines.
+                Find roommates who fit real work patterns—early starts, nights, rotating schedules.
               </p>
             </div>
             <div style={styles.featureCard}>
               <h3 style={styles.featureCardTitle}>Safe introductions</h3>
               <p style={styles.featureCardText}>
-                No public contact info. Request an intro, review the ask, and share details only
-                when you’re ready.
+                Request an intro, review the message, and share details only when ready.
               </p>
             </div>
           </div>
@@ -811,42 +805,31 @@ const styles: { [key: string]: React.CSSProperties } = {
     background: '#f8fafc',
   },
   hero: {
-    background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
-    padding: '60px 24px',
+    background: 'linear-gradient(180deg, #020617 0%, #0f172a 100%)',
+    padding: '48px 24px 40px',
     textAlign: 'center',
   },
   heroTitle: {
     color: 'white',
-    fontSize: '2.5rem',
+    fontSize: '2.25rem',
     fontWeight: 700,
-    marginBottom: '16px',
+    marginBottom: '12px',
     maxWidth: '700px',
-    margin: '0 auto 16px',
+    margin: '0 auto 12px',
     lineHeight: 1.2,
   },
-  heroSubtitle: {
-    color: '#94a3b8',
-    fontSize: '1.15rem',
-    maxWidth: '600px',
-    margin: '0 auto',
-    lineHeight: 1.6,
-  },
-  heroPills: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: '10px',
-    marginTop: '18px',
-  },
-  heroPill: {
-    border: '1px solid rgba(255,255,255,0.18)',
-    background: 'rgba(255,255,255,0.06)',
+  heroSubhead: {
     color: 'rgba(255,255,255,0.85)',
-    padding: '8px 12px',
-    borderRadius: '999px',
-    fontSize: '0.9rem',
-    fontWeight: 600,
-    letterSpacing: '0.01em',
+    fontSize: '1.1rem',
+    maxWidth: '520px',
+    margin: '0 auto',
+    lineHeight: 1.5,
+  },
+  heroTrustLine: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: '0.85rem',
+    marginTop: '16px',
+    letterSpacing: '0.02em',
   },
   heroCtas: {
     display: 'flex',
@@ -859,54 +842,54 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#f97316',
+    background: '#0d9488',
     color: 'white',
-    padding: '14px 22px',
-    borderRadius: '10px',
-    fontSize: '1rem',
-    fontWeight: 700,
+    padding: '12px 20px',
+    borderRadius: '8px',
+    fontSize: '0.95rem',
+    fontWeight: 600,
     textDecoration: 'none',
     transition: 'background 0.2s',
-    minWidth: '180px',
+    minWidth: '160px',
   },
   secondaryCta: {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'rgba(255,255,255,0.06)',
-    color: 'rgba(255,255,255,0.92)',
-    padding: '14px 22px',
-    borderRadius: '10px',
-    fontSize: '1rem',
-    fontWeight: 700,
+    background: 'transparent',
+    color: 'rgba(255,255,255,0.9)',
+    padding: '12px 20px',
+    borderRadius: '8px',
+    fontSize: '0.95rem',
+    fontWeight: 600,
     textDecoration: 'none',
-    border: '1px solid rgba(255,255,255,0.18)',
+    border: '1px solid rgba(255,255,255,0.2)',
     transition: 'background 0.2s',
-    minWidth: '180px',
+    minWidth: '160px',
   },
   heroMicrocopy: {
-    marginTop: '14px',
-    color: 'rgba(255,255,255,0.72)',
-    fontSize: '0.95rem',
-    maxWidth: '640px',
+    marginTop: '16px',
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: '0.8rem',
+    maxWidth: '420px',
     marginLeft: 'auto',
     marginRight: 'auto',
-    lineHeight: 1.5,
+    lineHeight: 1.4,
   },
   featureSection: {
     background: '#f8fafc',
-    padding: '34px 24px 10px',
+    padding: '32px 24px 24px',
   },
   featureInner: {
     maxWidth: '1100px',
     margin: '0 auto',
   },
   featureTitle: {
-    fontSize: '1.5rem',
+    fontSize: '1.35rem',
     fontWeight: 700,
     color: '#0f172a',
     textAlign: 'center',
-    marginBottom: '18px',
+    marginBottom: '20px',
   },
   featureGrid: {
     display: 'grid',
@@ -916,22 +899,22 @@ const styles: { [key: string]: React.CSSProperties } = {
   featureCard: {
     background: 'white',
     border: '1px solid #e2e8f0',
-    borderRadius: '14px',
-    padding: '18px 18px',
-    boxShadow: '0 1px 0 rgba(15,23,42,0.04)',
+    borderRadius: '12px',
+    padding: '16px',
+    boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
   },
   featureCardTitle: {
     margin: 0,
-    fontSize: '1.05rem',
-    fontWeight: 800,
+    fontSize: '0.95rem',
+    fontWeight: 700,
     color: '#0f172a',
-    marginBottom: '8px',
+    marginBottom: '6px',
   },
   featureCardText: {
     margin: 0,
-    color: '#475569',
-    lineHeight: 1.6,
-    fontSize: '0.98rem',
+    color: '#64748b',
+    lineHeight: 1.5,
+    fontSize: '0.9rem',
   },
   filters: {
     background: 'white',
@@ -975,10 +958,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     background: 'white',
   },
   searchButton: {
-    background: '#1e293b',
+    background: '#0d9488',
     color: 'white',
     border: 'none',
-    padding: '10px 28px',
+    padding: '10px 24px',
     fontSize: '0.95rem',
     fontWeight: 600,
     borderRadius: '8px',
@@ -1222,20 +1205,20 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   introButton: {
     flex: 1,
-    background: '#f97316',
+    background: '#0d9488',
     color: 'white',
     border: 'none',
-    padding: '14px 24px',
-    fontSize: '1rem',
+    padding: '12px 20px',
+    fontSize: '0.95rem',
     fontWeight: 600,
     borderRadius: '8px',
     cursor: 'pointer',
   },
   reportButton: {
-    background: '#f1f5f9',
+    background: 'transparent',
     color: '#64748b',
-    border: 'none',
-    padding: '14px 20px',
+    border: '1px solid #e2e8f0',
+    padding: '12px 16px',
     fontSize: '0.9rem',
     fontWeight: 500,
     borderRadius: '8px',
@@ -1321,11 +1304,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontFamily: 'inherit',
   },
   submitButton: {
-    background: '#f97316',
+    background: '#0d9488',
     color: 'white',
     border: 'none',
-    padding: '14px 24px',
-    fontSize: '1rem',
+    padding: '12px 20px',
+    fontSize: '0.95rem',
     fontWeight: 600,
     borderRadius: '8px',
     cursor: 'pointer',
@@ -1335,19 +1318,19 @@ const styles: { [key: string]: React.CSSProperties } = {
     background: '#ef4444',
     color: 'white',
     border: 'none',
-    padding: '14px 24px',
-    fontSize: '1rem',
+    padding: '12px 20px',
+    fontSize: '0.95rem',
     fontWeight: 600,
     borderRadius: '8px',
     cursor: 'pointer',
     marginTop: '8px',
   },
   footer: {
-    background: '#1e293b',
-    padding: '32px 24px',
+    background: '#020617',
+    padding: '28px 24px',
     textAlign: 'center',
     color: '#94a3b8',
-    marginTop: '40px',
+    marginTop: '48px',
   },
   footerTagline: {
     marginTop: '8px',
