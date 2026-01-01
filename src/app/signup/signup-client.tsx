@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -8,13 +8,21 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/contexts/AuthContext'
-import { Mail, Phone } from 'lucide-react'
+import { Mail, Phone, UserPlus } from 'lucide-react'
 
 type AuthStep = 'send' | 'verify'
+
+const INVITE_CODE_STORAGE_KEY = 'sitesisters_invite_code'
 
 function safeNextParam(nextParam: string | null): string | null {
   if (!nextParam) return null
   return nextParam.startsWith('/') ? nextParam : null
+}
+
+interface InviteStatus {
+  valid: boolean
+  inviterDisplayName?: string | null
+  reason?: string
 }
 
 export function SignupClient() {
@@ -25,6 +33,7 @@ export function SignupClient() {
   const supabase = getSupabaseBrowserClient()
 
   const nextParam = useMemo(() => safeNextParam(searchParams.get('next')), [searchParams])
+  const inviteCode = useMemo(() => searchParams.get('invite'), [searchParams])
   const defaultAfterAuth = nextParam || '/browse'
 
   const [activeTab, setActiveTab] = useState<'email' | 'phone'>('email')
@@ -35,6 +44,73 @@ export function SignupClient() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  
+  // Invite state
+  const [inviteStatus, setInviteStatus] = useState<InviteStatus | null>(null)
+  const [inviteLoading, setInviteLoading] = useState(false)
+
+  // Validate invite code on mount
+  useEffect(() => {
+    const validateInvite = async (code: string) => {
+      setInviteLoading(true)
+      try {
+        const res = await fetch(`/api/invites/resolve?code=${encodeURIComponent(code)}`)
+        const data = await res.json()
+        
+        setInviteStatus({
+          valid: data.valid,
+          inviterDisplayName: data.inviter_display_name,
+          reason: data.reason,
+        })
+
+        // Store valid invite code in sessionStorage for post-OTP consumption
+        if (data.valid) {
+          sessionStorage.setItem(INVITE_CODE_STORAGE_KEY, code)
+        } else {
+          sessionStorage.removeItem(INVITE_CODE_STORAGE_KEY)
+        }
+      } catch (err) {
+        console.error('Error validating invite:', err)
+        setInviteStatus({ valid: false, reason: 'Failed to validate invite.' })
+      } finally {
+        setInviteLoading(false)
+      }
+    }
+
+    if (inviteCode) {
+      validateInvite(inviteCode)
+    } else {
+      // Check if there's a stored invite code (user refreshed during OTP flow)
+      const storedCode = sessionStorage.getItem(INVITE_CODE_STORAGE_KEY)
+      if (storedCode) {
+        validateInvite(storedCode)
+      }
+    }
+  }, [inviteCode])
+
+  // Consume invite after successful signup
+  const consumeInvite = useCallback(async () => {
+    const storedCode = sessionStorage.getItem(INVITE_CODE_STORAGE_KEY)
+    if (!storedCode) return
+
+    try {
+      const res = await fetch('/api/invites/consume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: storedCode }),
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        // Clear the stored invite code after successful consumption
+        sessionStorage.removeItem(INVITE_CODE_STORAGE_KEY)
+      } else {
+        console.warn('Failed to consume invite:', data.reason)
+      }
+    } catch (err) {
+      console.error('Error consuming invite:', err)
+    }
+  }, [])
 
   useEffect(() => {
     // Already signed in: go where you intended.
@@ -142,6 +218,9 @@ export function SignupClient() {
         return
       }
 
+      // Consume the invite code if one was used
+      await consumeInvite()
+
       const { data: profileRow } = await supabase
         .from('profiles')
         .select('first_name,home_city')
@@ -178,6 +257,47 @@ export function SignupClient() {
         <p className="mt-2 text-slate-600">
           We’ll send a 6-digit code. No magic links.
         </p>
+
+        {/* Invite banner */}
+        {inviteLoading && (
+          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm text-slate-600">Validating invite…</p>
+          </div>
+        )}
+        
+        {!inviteLoading && inviteStatus && (
+          <div className={`mt-4 rounded-lg border p-4 ${
+            inviteStatus.valid 
+              ? 'border-emerald-200 bg-emerald-50' 
+              : 'border-amber-200 bg-amber-50'
+          }`}>
+            {inviteStatus.valid ? (
+              <div className="flex items-start gap-3">
+                <UserPlus className="mt-0.5 h-5 w-5 text-emerald-600" aria-hidden="true" />
+                <div>
+                  <p className="font-medium text-emerald-900">
+                    {inviteStatus.inviterDisplayName 
+                      ? `${inviteStatus.inviterDisplayName} invited you!`
+                      : 'You have a valid invite!'}
+                  </p>
+                  <p className="mt-1 text-sm text-emerald-700">
+                    Sign up below to join.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="font-medium text-amber-900">Invite not valid</p>
+                <p className="mt-1 text-sm text-amber-700">
+                  {inviteStatus.reason || 'This invite code is invalid or has expired.'}
+                </p>
+                <p className="mt-2 text-sm text-amber-600">
+                  You can still sign up if you have access.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <Tabs
