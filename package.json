@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint src/"
   },
   "dependencies": {
     "next": "^16.1.1",
@@ -14,9 +14,16 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.3",
+    "@eslint/js": "^9.39.2",
     "@types/node": "20.17.12",
     "@types/react": "18.3.18",
     "@types/react-dom": "18.3.5",
-    "typescript": "5.7.2"
+    "eslint": "^9.39.2",
+    "eslint-config-next": "^16.1.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "typescript": "5.7.2",
+    "typescript-eslint": "^8.51.0"
   }
 }
