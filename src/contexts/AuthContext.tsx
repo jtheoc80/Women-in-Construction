@@ -193,23 +193,55 @@ export function useAuth() {
 }
 
 // Hook for gating actions behind auth + profile completion
-export function useGatedAction() {
+// Supports both modal-based (default) and redirect-based gating
+export function useGatedAction(options?: { useRedirect?: boolean }) {
   const { user, isProfileComplete, openAuthDialog, openProfileSheet } = useAuth()
 
-  const gateAction = useCallback((action: () => void) => {
+  const gateAction = useCallback((action: () => void, returnUrl?: string) => {
+    const currentUrl = typeof window !== 'undefined' ? window.location.pathname : '/design'
+    const redirectUrl = returnUrl || currentUrl
+
     if (!user) {
-      openAuthDialog()
+      if (options?.useRedirect) {
+        window.location.href = `/signup?next=${encodeURIComponent(redirectUrl)}`
+      } else {
+        openAuthDialog()
+      }
       return false
     }
     
     if (!isProfileComplete) {
-      openProfileSheet()
+      if (options?.useRedirect) {
+        window.location.href = `/onboarding?next=${encodeURIComponent(redirectUrl)}`
+      } else {
+        openProfileSheet()
+      }
       return false
     }
     
     action()
     return true
-  }, [user, isProfileComplete, openAuthDialog, openProfileSheet])
+  }, [user, isProfileComplete, openAuthDialog, openProfileSheet, options?.useRedirect])
 
-  return { gateAction, isAuthed: !!user, isProfileComplete }
+  // Helper to get the signup URL with return path
+  const getSignupUrl = useCallback((returnUrl?: string) => {
+    const currentUrl = typeof window !== 'undefined' ? window.location.pathname : '/design'
+    const redirectUrl = returnUrl || currentUrl
+    return `/signup?next=${encodeURIComponent(redirectUrl)}`
+  }, [])
+
+  // Helper to get the onboarding URL with return path
+  const getOnboardingUrl = useCallback((returnUrl?: string) => {
+    const currentUrl = typeof window !== 'undefined' ? window.location.pathname : '/design'
+    const redirectUrl = returnUrl || currentUrl
+    return `/onboarding?next=${encodeURIComponent(redirectUrl)}`
+  }, [])
+
+  return { 
+    gateAction, 
+    isAuthed: !!user, 
+    isProfileComplete,
+    getSignupUrl,
+    getOnboardingUrl,
+  }
 }

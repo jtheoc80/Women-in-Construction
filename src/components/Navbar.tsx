@@ -1,26 +1,33 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 
 interface NavbarProps {
   onPostListing?: () => void
   showPostButton?: boolean
+  useSignupLink?: boolean // If true, "Sign in" links to /signup instead of opening dialog
 }
 
-export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
+export function Navbar({ onPostListing, showPostButton = true, useSignupLink = false }: NavbarProps) {
   const { user, profile, loading, signOut, openAuthDialog } = useAuth()
+  const pathname = usePathname()
+
+  // Build the signup URL with return path
+  const signupUrl = `/signup?next=${encodeURIComponent(pathname || '/design')}`
 
   return (
     <header className="bg-slate-800 px-4 sm:px-6 py-4 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
-        <a href="/design" className="flex items-center gap-2">
+        <Link href="/design" className="flex items-center gap-2">
           <span className="text-2xl sm:text-3xl">🏠</span>
           <span className="text-white text-xl sm:text-2xl font-bold tracking-tight">
             SiteSisters
           </span>
-        </a>
+        </Link>
 
         <div className="flex items-center gap-2 sm:gap-4">
           {showPostButton && (
@@ -53,6 +60,15 @@ export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
                 Sign out
               </Button>
             </div>
+          ) : useSignupLink ? (
+            <Link href={signupUrl}>
+              <Button
+                variant="outline"
+                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white text-sm"
+              >
+                Sign in
+              </Button>
+            </Link>
           ) : (
             <Button
               variant="outline"
