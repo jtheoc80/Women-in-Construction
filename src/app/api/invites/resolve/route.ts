@@ -17,8 +17,10 @@ interface ValidateInviteResult {
  * Uses service role to bypass RLS since invites are private.
  * 
  * Response:
- * - { valid: true, inviter_display_name?: string } if code is valid
- * - { valid: false, reason: string } if code is invalid/expired/maxed
+ * - { ok: true } if code is valid
+ * - { ok: false, reason: string } if code is invalid/expired/maxed
+ * 
+ * Note: Does NOT return inviter_user_id to prevent enumeration.
  */
 export async function GET(req: NextRequest) {
   try {
@@ -27,7 +29,7 @@ export async function GET(req: NextRequest) {
 
     if (!code || typeof code !== 'string' || code.trim() === '') {
       return NextResponse.json(
-        { valid: false, reason: 'No invite code provided.' },
+        { ok: false, reason: 'No invite code provided.' },
         { status: 400 }
       )
     }
@@ -42,7 +44,7 @@ export async function GET(req: NextRequest) {
     if (error) {
       console.error('Error validating invite code:', error)
       return NextResponse.json(
-        { valid: false, reason: 'Failed to validate invite code.' },
+        { ok: false, reason: 'Failed to validate invite code.' },
         { status: 500 }
       )
     }
@@ -60,31 +62,15 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      return NextResponse.json({ valid: false, reason })
+      return NextResponse.json({ ok: false, reason })
     }
 
-    // Optionally fetch the inviter's display name for a friendlier UX
-    let inviterDisplayName: string | null = null
-    if (data.inviter_user_id) {
-      const { data: profile } = await adminClient
-        .from('profiles')
-        .select('display_name, first_name')
-        .eq('id', data.inviter_user_id)
-        .single()
-
-      if (profile) {
-        inviterDisplayName = profile.display_name || profile.first_name || null
-      }
-    }
-
-    return NextResponse.json({
-      valid: true,
-      inviter_display_name: inviterDisplayName,
-    })
+    // Return ok: true without exposing inviter info
+    return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('Unexpected error resolving invite:', error)
     return NextResponse.json(
-      { valid: false, reason: 'An unexpected error occurred.' },
+      { ok: false, reason: 'An unexpected error occurred.' },
       { status: 500 }
     )
   }

@@ -13,15 +13,60 @@ import { Mail, Phone, UserPlus } from 'lucide-react'
 type AuthStep = 'send' | 'verify'
 
 const INVITE_CODE_STORAGE_KEY = 'sitesisters_invite_code'
+const INVITE_CODE_COOKIE = 'invite_code'
 
 function safeNextParam(nextParam: string | null): string | null {
   if (!nextParam) return null
   return nextParam.startsWith('/') ? nextParam : null
 }
 
+/** Read invite code from cookie */
+function getInviteCodeFromCookie(): string | null {
+  if (typeof document === 'undefined') return null
+  const match = document.cookie.match(new RegExp(`(^| )${INVITE_CODE_COOKIE}=([^;]+)`))
+  return match ? decodeURIComponent(match[2]) : null
+}
+
+/** Clear invite code from cookie */
+function clearInviteCodeCookie() {
+  if (typeof document === 'undefined') return
+  document.cookie = `${INVITE_CODE_COOKIE}=; path=/; max-age=0`
+}
+
+/** Store invite code in localStorage with 7-day expiry */
+function storeInviteCode(code: string) {
+  if (typeof localStorage === 'undefined') return
+  const expires = Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
+  localStorage.setItem(INVITE_CODE_STORAGE_KEY, JSON.stringify({ code, expires }))
+}
+
+/** Get invite code from localStorage if not expired */
+function getStoredInviteCode(): string | null {
+  if (typeof localStorage === 'undefined') return null
+  try {
+    const stored = localStorage.getItem(INVITE_CODE_STORAGE_KEY)
+    if (!stored) return null
+    const { code, expires } = JSON.parse(stored)
+    if (Date.now() > expires) {
+      localStorage.removeItem(INVITE_CODE_STORAGE_KEY)
+      return null
+    }
+    return code
+  } catch {
+    return null
+  }
+}
+
+/** Clear all stored invite codes */
+function clearAllInviteCodes() {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem(INVITE_CODE_STORAGE_KEY)
+  }
+  clearInviteCodeCookie()
+}
+
 interface InviteStatus {
-  valid: boolean
-  inviterDisplayName?: string | null
+  ok: boolean
   reason?: string
 }
 
@@ -33,7 +78,7 @@ export function SignupClient() {
   const supabase = getSupabaseBrowserClient()
 
   const nextParam = useMemo(() => safeNextParam(searchParams.get('next')), [searchParams])
-  const inviteCode = useMemo(() => searchParams.get('invite'), [searchParams])
+  const inviteCodeFromUrl = useMemo(() => searchParams.get('invite'), [searchParams])
   const defaultAfterAuth = nextParam || '/browse'
 
   const [activeTab, setActiveTab] = useState<'email' | 'phone'>('email')
@@ -46,10 +91,21 @@ export function SignupClient() {
   const [message, setMessage] = useState<string | null>(null)
   
   // Invite state
+  const [inviteCode, setInviteCode] = useState<string | null>(null)
   const [inviteStatus, setInviteStatus] = useState<InviteStatus | null>(null)
   const [inviteLoading, setInviteLoading] = useState(false)
 
-  // Validate invite code on mount
+  // Get the effective invite code from URL, cookie, or localStorage
+  useEffect(() => {
+    const code = inviteCodeFromUrl || getInviteCodeFromCookie() || getStoredInviteCode()
+    if (code) {
+      setInviteCode(code)
+      // Also store in localStorage for persistence across the OTP flow
+      storeInviteCode(code)
+    }
+  }, [inviteCodeFromUrl])
+
+  // Validate invite code when we have one
   useEffect(() => {
     const validateInvite = async (code: string) => {
       setInviteLoading(true)
@@ -58,20 +114,14 @@ export function SignupClient() {
         const data = await res.json()
         
         setInviteStatus({
-          valid: data.valid,
-          inviterDisplayName: data.inviter_display_name,
+          ok: data.ok,
           reason: data.reason,
         })
 
-        // Store valid invite code in sessionStorage for post-OTP consumption
-        if (data.valid) {
-          sessionStorage.setItem(INVITE_CODE_STORAGE_KEY, code)
-        } else {
-          sessionStorage.removeItem(INVITE_CODE_STORAGE_KEY)
-        }
+        // If invalid, don't clear yet - let user see the message
       } catch (err) {
         console.error('Error validating invite:', err)
-        setInviteStatus({ valid: false, reason: 'Failed to validate invite.' })
+        setInviteStatus({ ok: false, reason: 'Failed to validate invite.' })
       } finally {
         setInviteLoading(false)
       }
@@ -79,38 +129,34 @@ export function SignupClient() {
 
     if (inviteCode) {
       validateInvite(inviteCode)
-    } else {
-      // Check if there's a stored invite code (user refreshed during OTP flow)
-      const storedCode = sessionStorage.getItem(INVITE_CODE_STORAGE_KEY)
-      if (storedCode) {
-        validateInvite(storedCode)
-      }
     }
   }, [inviteCode])
 
   // Consume invite after successful signup
   const consumeInvite = useCallback(async () => {
-    const storedCode = sessionStorage.getItem(INVITE_CODE_STORAGE_KEY)
-    if (!storedCode) return
+    // Get code from all possible sources
+    const code = inviteCode || getStoredInviteCode() || getInviteCodeFromCookie()
+    
+    // Always clear stored codes after attempting consumption
+    clearAllInviteCodes()
+    
+    if (!code) return
 
     try {
       const res = await fetch('/api/invites/consume', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: storedCode }),
+        body: JSON.stringify({ code }),
       })
 
       const data = await res.json()
-      if (data.success) {
-        // Clear the stored invite code after successful consumption
-        sessionStorage.removeItem(INVITE_CODE_STORAGE_KEY)
-      } else {
+      if (!data.ok) {
         console.warn('Failed to consume invite:', data.reason)
       }
     } catch (err) {
       console.error('Error consuming invite:', err)
     }
-  }, [])
+  }, [inviteCode])
 
   useEffect(() => {
     // Already signed in: go where you intended.
@@ -218,7 +264,7 @@ export function SignupClient() {
         return
       }
 
-      // Consume the invite code if one was used
+      // Consume the invite code if one was used (always clears after attempt)
       await consumeInvite()
 
       const { data: profileRow } = await supabase
@@ -255,30 +301,28 @@ export function SignupClient() {
           Sign in
         </h1>
         <p className="mt-2 text-slate-600">
-          We’ll send a 6-digit code. No magic links.
+          We&apos;ll send a 6-digit code. No magic links.
         </p>
 
         {/* Invite banner */}
         {inviteLoading && (
           <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm text-slate-600">Validating invite…</p>
+            <p className="text-sm text-slate-600">Validating invite...</p>
           </div>
         )}
         
         {!inviteLoading && inviteStatus && (
           <div className={`mt-4 rounded-lg border p-4 ${
-            inviteStatus.valid 
+            inviteStatus.ok 
               ? 'border-emerald-200 bg-emerald-50' 
               : 'border-amber-200 bg-amber-50'
           }`}>
-            {inviteStatus.valid ? (
+            {inviteStatus.ok ? (
               <div className="flex items-start gap-3">
                 <UserPlus className="mt-0.5 h-5 w-5 text-emerald-600" aria-hidden="true" />
                 <div>
                   <p className="font-medium text-emerald-900">
-                    {inviteStatus.inviterDisplayName 
-                      ? `${inviteStatus.inviterDisplayName} invited you!`
-                      : 'You have a valid invite!'}
+                    You have a valid invite!
                   </p>
                   <p className="mt-1 text-sm text-emerald-700">
                     Sign up below to join.
@@ -341,7 +385,7 @@ export function SignupClient() {
 
                   {error && <p className="text-sm text-red-600">{error}</p>}
                   <Button type="submit" disabled={loading || !email.trim()} className="w-full">
-                    {loading ? 'Sending…' : 'Send code'}
+                    {loading ? 'Sending...' : 'Send code'}
                   </Button>
                 </form>
               ) : (
@@ -366,7 +410,7 @@ export function SignupClient() {
                   </div>
                   {error && <p className="text-sm text-red-600">{error}</p>}
                   <Button type="submit" disabled={loading || otp.trim().length !== 6} className="w-full">
-                    {loading ? 'Verifying…' : 'Verify & continue'}
+                    {loading ? 'Verifying...' : 'Verify & continue'}
                   </Button>
                   <button
                     type="button"
@@ -395,13 +439,13 @@ export function SignupClient() {
                       required
                     />
                     <p className="text-xs text-slate-500">
-                      We’ll text you a 6-digit code.
+                      We&apos;ll text you a 6-digit code.
                     </p>
                   </div>
 
                   {error && <p className="text-sm text-red-600">{error}</p>}
                   <Button type="submit" disabled={loading || !phone.trim()} className="w-full">
-                    {loading ? 'Sending…' : 'Send code'}
+                    {loading ? 'Sending...' : 'Send code'}
                   </Button>
                 </form>
               ) : (
@@ -426,7 +470,7 @@ export function SignupClient() {
                   </div>
                   {error && <p className="text-sm text-red-600">{error}</p>}
                   <Button type="submit" disabled={loading || otp.trim().length !== 6} className="w-full">
-                    {loading ? 'Verifying…' : 'Verify & continue'}
+                    {loading ? 'Verifying...' : 'Verify & continue'}
                   </Button>
                   <button
                     type="button"
@@ -448,4 +492,3 @@ export function SignupClient() {
     </main>
   )
 }
-

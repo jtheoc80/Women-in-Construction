@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
+import { createAdminClient } from '@/lib/supabase-admin'
 import { nanoid } from 'nanoid'
 
 /**
@@ -14,8 +15,9 @@ import { nanoid } from 'nanoid'
  * Response:
  * - { code, url, uses, max_uses, expires_at }
  */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    // Authenticate the user
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -25,6 +27,9 @@ export async function POST(req: Request) {
         { status: 401 }
       )
     }
+
+    // Use admin client for all invite operations (bypasses RLS)
+    const adminClient = createAdminClient()
 
     // Parse optional body parameters
     let maxUses: number | null = null
@@ -45,7 +50,7 @@ export async function POST(req: Request) {
     }
 
     // Check if user already has an active invite (unlimited or not maxed out)
-    const { data: existingInvite } = await supabase
+    const { data: existingInvite } = await adminClient
       .from('invites')
       .select('*')
       .eq('inviter_user_id', user.id)
@@ -60,10 +65,14 @@ export async function POST(req: Request) {
         existingInvite.uses < existingInvite.max_uses
 
       if (isUsable) {
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        // Get origin from request headers or fall back to env
+        const origin = req.headers.get('origin') || 
+          process.env.NEXT_PUBLIC_APP_URL || 
+          'http://localhost:3000'
+        
         return NextResponse.json({
           code: existingInvite.code,
-          url: `${baseUrl}/signup?invite=${existingInvite.code}`,
+          url: `${origin}/invite/${existingInvite.code}`,
           uses: existingInvite.uses,
           max_uses: existingInvite.max_uses,
           expires_at: existingInvite.expires_at,
@@ -74,7 +83,7 @@ export async function POST(req: Request) {
     // Generate a new invite code (10-12 chars, URL-safe)
     const code = nanoid(12)
 
-    const { data: newInvite, error: insertError } = await supabase
+    const { data: newInvite, error: insertError } = await adminClient
       .from('invites')
       .insert({
         code,
@@ -93,11 +102,14 @@ export async function POST(req: Request) {
       )
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    // Get origin from request headers or fall back to env
+    const origin = req.headers.get('origin') || 
+      process.env.NEXT_PUBLIC_APP_URL || 
+      'http://localhost:3000'
 
     return NextResponse.json({
       code: newInvite.code,
-      url: `${baseUrl}/signup?invite=${newInvite.code}`,
+      url: `${origin}/invite/${newInvite.code}`,
       uses: newInvite.uses,
       max_uses: newInvite.max_uses,
       expires_at: newInvite.expires_at,
@@ -115,7 +127,7 @@ export async function POST(req: Request) {
  * GET /api/invites/create
  * Returns the user's current active invite if one exists.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -127,8 +139,11 @@ export async function GET() {
       )
     }
 
+    // Use admin client for all invite operations (bypasses RLS)
+    const adminClient = createAdminClient()
+
     // Get user's active invite
-    const { data: existingInvite } = await supabase
+    const { data: existingInvite } = await adminClient
       .from('invites')
       .select('*')
       .eq('inviter_user_id', user.id)
@@ -144,12 +159,15 @@ export async function GET() {
     const isUsable = existingInvite.max_uses === null || 
       existingInvite.uses < existingInvite.max_uses
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    // Get origin from request headers or fall back to env
+    const origin = req.headers.get('origin') || 
+      process.env.NEXT_PUBLIC_APP_URL || 
+      'http://localhost:3000'
 
     return NextResponse.json({
       invite: {
         code: existingInvite.code,
-        url: `${baseUrl}/signup?invite=${existingInvite.code}`,
+        url: `${origin}/invite/${existingInvite.code}`,
         uses: existingInvite.uses,
         max_uses: existingInvite.max_uses,
         expires_at: existingInvite.expires_at,
