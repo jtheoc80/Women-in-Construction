@@ -275,7 +275,7 @@ export function SignupClient() {
                       required
                     />
                     <p className="text-xs text-slate-500">
-                      We’ll text you a 6-digit code.
+                      We’ll text you a verification code.
                     </p>
                   </div>
 
