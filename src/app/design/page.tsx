@@ -20,6 +20,8 @@ interface Listing {
   details: string | null
   is_active: boolean
   created_at: string
+  cover_photo_url?: string | null
+  photo_urls?: string[] | null
   profiles?: {
     display_name: string
   }
@@ -80,6 +82,11 @@ function getMockListings(): Listing[] {
       details: 'Looking for a clean, quiet roommate. I work early shifts at the data center construction site. Non-smoker preferred.',
       is_active: true,
       created_at: '2026-01-15T10:00:00Z',
+      cover_photo_url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
+      photo_urls: [
+        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
+        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
+      ],
       profiles: { display_name: 'Sarah M.' }
     },
     {
@@ -95,6 +102,11 @@ function getMockListings(): Listing[] {
       details: 'Friendly electrician looking to share a 2BR apartment near the fab site. Flexible on move-in date.',
       is_active: true,
       created_at: '2026-01-14T15:30:00Z',
+      cover_photo_url: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800',
+      photo_urls: [
+        'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800',
+        'https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?w=800',
+      ],
       profiles: { display_name: 'Jessica R.' }
     },
     {
@@ -110,6 +122,12 @@ function getMockListings(): Listing[] {
       details: 'HVAC tech on a 6-month project. Looking for month-to-month or short-term lease. I keep odd hours but am respectful.',
       is_active: true,
       created_at: '2026-01-13T09:00:00Z',
+      cover_photo_url: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800',
+      photo_urls: [
+        'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800',
+        'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800',
+        'https://images.unsplash.com/photo-1556909172-54557c7e4fb7?w=800',
+      ],
       profiles: { display_name: 'Amanda K.' }
     },
     {
@@ -125,9 +143,25 @@ function getMockListings(): Listing[] {
       details: 'Have a whole 1BR available in a quiet complex. Perfect for someone who values privacy. Pool and gym access.',
       is_active: true,
       created_at: '2026-01-12T14:00:00Z',
+      cover_photo_url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
+      photo_urls: [
+        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
+        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
+      ],
       profiles: { display_name: 'Michelle T.' }
     },
   ]
+}
+
+function getListingCoverPhotoUrl(listing: Listing): string | null {
+  if (listing.cover_photo_url) return listing.cover_photo_url
+  if (listing.photo_urls && listing.photo_urls.length > 0) return listing.photo_urls[0]
+  return null
+}
+
+function getListingPhotoCount(listing: Listing): number {
+  if (listing.photo_urls) return listing.photo_urls.length
+  return listing.cover_photo_url ? 1 : 0
 }
 
 // Room type display helper
@@ -396,33 +430,62 @@ export default function DesignPage() {
                 style={styles.card}
                 onClick={() => setSelectedListing(listing)}
               >
-                <div style={styles.cardHeader}>
-                  <span style={styles.cardCity}>{listing.city}</span>
-                  <span style={styles.cardType}>{formatRoomType(listing.room_type)}</span>
-                </div>
-                <div style={styles.cardBody}>
-                  {listing.area && <p style={styles.cardArea}>{listing.area}</p>}
-                  <p style={styles.cardRent}>
-                    ${listing.rent_min || '?'} - ${listing.rent_max || '?'}/mo
-                  </p>
-                  {listing.commute_area && (
-                    <p style={styles.cardCommute}>
-                      <MapPin
-                        aria-hidden="true"
-                        style={{ ...styles.commuteIcon, verticalAlign: 'text-bottom' }}
-                        size={14}
-                      />{' '}
-                      Near {listing.commute_area}
-                    </p>
+                {/* Photo Header */}
+                <div style={styles.cardPhotoContainer}>
+                  {getListingCoverPhotoUrl(listing) ? (
+                    <img
+                      src={getListingCoverPhotoUrl(listing)!}
+                      alt={`${listing.area || listing.city} listing`}
+                      style={styles.cardPhoto}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div style={styles.cardPhotoFallback}>
+                      <span style={styles.cardPhotoFallbackText}>Photo coming soon</span>
+                    </div>
                   )}
-                  <p style={styles.cardMoveIn}>
-                    Move-in: {formatDate(listing.move_in)}
-                  </p>
-                </div>
-                <div style={styles.cardFooter}>
-                  <span style={styles.cardPoster}>
-                    Posted by {listing.profiles?.display_name || 'Anonymous'}
+
+                  <span style={styles.cardTypeBadge}>
+                    {formatRoomType(listing.room_type)}
                   </span>
+
+                  {getListingPhotoCount(listing) > 0 && (
+                    <span style={styles.cardPhotoCount}>
+                      {getListingPhotoCount(listing)}{' '}
+                      {getListingPhotoCount(listing) === 1 ? 'photo' : 'photos'}
+                    </span>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div style={styles.cardContent}>
+                  <div style={styles.cardHeader}>
+                    <span style={styles.cardCity}>{listing.city}</span>
+                  </div>
+                  <div style={styles.cardBody}>
+                    {listing.area && <p style={styles.cardArea}>{listing.area}</p>}
+                    <p style={styles.cardRent}>
+                      ${listing.rent_min || '?'} - ${listing.rent_max || '?'}/mo
+                    </p>
+                    {listing.commute_area && (
+                      <p style={styles.cardCommute}>
+                        <MapPin
+                          aria-hidden="true"
+                          style={{ ...styles.commuteIcon, verticalAlign: 'text-bottom' }}
+                          size={14}
+                        />{' '}
+                        Near {listing.commute_area}
+                      </p>
+                    )}
+                    <p style={styles.cardMoveIn}>
+                      Move-in: {formatDate(listing.move_in)}
+                    </p>
+                  </div>
+                  <div style={styles.cardFooter}>
+                    <span style={styles.cardPoster}>
+                      Posted by {listing.profiles?.display_name || 'Anonymous'}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -814,11 +877,62 @@ const styles: { [key: string]: React.CSSProperties } = {
   card: {
     background: 'white',
     borderRadius: '12px',
-    padding: '20px',
+    overflow: 'hidden',
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
     cursor: 'pointer',
     transition: 'transform 0.2s, box-shadow 0.2s',
     border: '1px solid #e2e8f0',
+  },
+  cardPhotoContainer: {
+    position: 'relative',
+    height: '160px',
+    background: '#f1f5f9',
+  },
+  cardPhoto: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    display: 'block',
+  },
+  cardPhotoFallback: {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background:
+      'linear-gradient(135deg, rgba(30,41,59,0.9) 0%, rgba(51,65,85,0.9) 100%)',
+  },
+  cardPhotoFallbackText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: '0.9rem',
+    fontWeight: 600,
+  },
+  cardTypeBadge: {
+    position: 'absolute',
+    top: '10px',
+    left: '10px',
+    background: 'rgba(255,255,255,0.92)',
+    color: '#475569',
+    padding: '4px 10px',
+    borderRadius: '20px',
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    boxShadow: '0 1px 2px rgba(0,0,0,0.12)',
+  },
+  cardPhotoCount: {
+    position: 'absolute',
+    bottom: '10px',
+    right: '10px',
+    background: 'rgba(0,0,0,0.7)',
+    color: 'white',
+    padding: '4px 8px',
+    borderRadius: '6px',
+    fontSize: '0.75rem',
+    fontWeight: 600,
+  },
+  cardContent: {
+    padding: '20px',
   },
   cardHeader: {
     display: 'flex',
@@ -830,14 +944,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '1.1rem',
     fontWeight: 600,
     color: '#1e293b',
-  },
-  cardType: {
-    background: '#f1f5f9',
-    color: '#475569',
-    padding: '4px 10px',
-    borderRadius: '20px',
-    fontSize: '0.75rem',
-    fontWeight: 500,
   },
   cardBody: {
     marginBottom: '12px',
