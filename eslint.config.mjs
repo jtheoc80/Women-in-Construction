@@ -8,7 +8,6 @@ export default [
   ...tseslint.configs.recommended,
   {
     files: ["**/*.{ts,tsx}"],
-    ...react.configs.flat.recommended,
     plugins: {
       react,
       "react-hooks": reactHooks,
