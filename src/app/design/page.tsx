@@ -1,6 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Navbar } from '@/components/Navbar'
+import { useGatedAction, useAuth } from '@/contexts/AuthContext'
+import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 // Types based on database schema
 interface Listing {
@@ -175,6 +178,11 @@ export default function DesignPage() {
     details: '',
   })
 
+  // Auth hooks for gating
+  const { gateAction } = useGatedAction()
+  const { user } = useAuth()
+  const supabase = getSupabaseBrowserClient()
+
   useEffect(() => {
     loadListings()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -195,29 +203,99 @@ export default function DesignPage() {
     loadListings()
   }
 
-  function handlePostListing(e: React.FormEvent) {
-    e.preventDefault()
-    // In production, this would POST to Supabase
-    alert('Listing posted! (Demo mode - no actual database write)')
-    setShowPostModal(false)
-    setNewListing({
-      city: '',
-      area: '',
-      rent_min: '',
-      rent_max: '',
-      move_in: '',
-      room_type: 'private_room',
-      commute_area: '',
-      details: '',
-    })
+  // Gated action handlers
+  function handlePostListingClick() {
+    gateAction(() => setShowPostModal(true))
   }
 
-  function handleRequestIntro(e: React.FormEvent) {
+  function handleRequestIntroClick() {
+    gateAction(() => setShowIntroModal(true))
+  }
+
+  async function handlePostListing(e: React.FormEvent) {
     e.preventDefault()
-    // In production, this would POST to Supabase intro_requests
-    alert('Intro request sent! (Demo mode - no actual database write)')
-    setShowIntroModal(false)
-    setIntroMessage('')
+    
+    if (!user) {
+      alert('Please sign in to post a listing')
+      return
+    }
+
+    // Create the listing in Supabase
+    try {
+      const { error } = await supabase
+        .from('listings')
+        .insert({
+          user_id: user.id,
+          city: newListing.city,
+          area: newListing.area || null,
+          rent_min: newListing.rent_min ? parseInt(newListing.rent_min) : null,
+          rent_max: newListing.rent_max ? parseInt(newListing.rent_max) : null,
+          move_in: newListing.move_in || null,
+          room_type: newListing.room_type,
+          commute_area: newListing.commute_area || null,
+          details: newListing.details || null,
+          is_active: true,
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating listing:', error)
+        alert('Error creating listing: ' + error.message)
+        return
+      }
+
+      alert('Listing posted successfully!')
+      setShowPostModal(false)
+      setNewListing({
+        city: '',
+        area: '',
+        rent_min: '',
+        rent_max: '',
+        move_in: '',
+        room_type: 'private_room',
+        commute_area: '',
+        details: '',
+      })
+      loadListings()
+    } catch (err) {
+      console.error('Error:', err)
+      alert('An error occurred while posting the listing')
+    }
+  }
+
+  async function handleRequestIntro(e: React.FormEvent) {
+    e.preventDefault()
+    
+    if (!user || !selectedListing) {
+      alert('Please sign in to request an intro')
+      return
+    }
+
+    // Create the intro request in Supabase
+    try {
+      const { error } = await supabase
+        .from('intro_requests')
+        .insert({
+          listing_id: selectedListing.id,
+          requester_user_id: user.id,
+          message: introMessage,
+          status: 'pending',
+        })
+
+      if (error) {
+        console.error('Error creating intro request:', error)
+        alert('Error sending intro request: ' + error.message)
+        return
+      }
+
+      alert('Intro request sent! The listing owner will be notified.')
+      setShowIntroModal(false)
+      setIntroMessage('')
+    } catch (err) {
+      console.error('Error:', err)
+      alert('An error occurred while sending the intro request')
+    }
   }
 
   function handleReport(e: React.FormEvent) {
@@ -231,18 +309,8 @@ export default function DesignPage() {
 
   return (
     <div style={styles.page}>
-      {/* Header */}
-      <header style={styles.header}>
-        <div style={styles.headerContent}>
-          <div style={styles.logo}>
-            <span style={styles.logoIcon}>🏠</span>
-            <span style={styles.logoText}>SiteSisters</span>
-          </div>
-          <button style={styles.postButton} onClick={() => setShowPostModal(true)}>
-            + Post Listing
-          </button>
-        </div>
-      </header>
+      {/* Header with Navbar */}
+      <Navbar onPostListing={handlePostListingClick} />
 
       {/* Hero */}
       <section style={styles.hero}>
@@ -401,7 +469,7 @@ export default function DesignPage() {
               <div style={styles.drawerActions}>
                 <button
                   style={styles.introButton}
-                  onClick={() => setShowIntroModal(true)}
+                  onClick={handleRequestIntroClick}
                 >
                   Request Intro
                 </button>
@@ -614,44 +682,6 @@ const styles: { [key: string]: React.CSSProperties } = {
   page: {
     minHeight: '100vh',
     background: '#f8fafc',
-  },
-  header: {
-    background: '#1e293b',
-    padding: '16px 24px',
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
-  },
-  headerContent: {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  logo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-  },
-  logoIcon: {
-    fontSize: '1.8rem',
-  },
-  logoText: {
-    color: 'white',
-    fontSize: '1.5rem',
-    fontWeight: 700,
-    letterSpacing: '-0.5px',
-  },
-  postButton: {
-    background: '#f97316',
-    color: 'white',
-    border: 'none',
-    padding: '10px 20px',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    borderRadius: '8px',
-    cursor: 'pointer',
   },
   hero: {
     background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',

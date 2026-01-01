@@ -3,12 +3,15 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Jobsite } from '@/lib/supabase'
+import { Navbar } from '@/components/Navbar'
+import { useGatedAction } from '@/contexts/AuthContext'
 
 export default function JobsitesIndexPage() {
   const router = useRouter()
   const [jobsites, setJobsites] = useState<Jobsite[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const { gateAction } = useGatedAction()
 
   useEffect(() => {
     async function loadJobsites() {
@@ -50,24 +53,14 @@ export default function JobsitesIndexPage() {
       )
     : jobsites
 
+  const handlePostListing = () => {
+    gateAction(() => router.push('/design'))
+  }
+
   return (
     <div style={styles.page}>
       {/* Header */}
-      <header style={styles.header}>
-        <div style={styles.headerContent}>
-          <button
-            style={styles.backButton}
-            onClick={() => router.push('/design')}
-          >
-            ← Back
-          </button>
-          <div style={styles.logo}>
-            <span style={styles.logoIcon}>🏠</span>
-            <span style={styles.logoText}>SiteSisters</span>
-          </div>
-          <div style={{ width: '80px' }} />
-        </div>
-      </header>
+      <Navbar onPostListing={handlePostListing} />
 
       {/* Hero */}
       <section style={styles.hero}>

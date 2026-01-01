@@ -1,8 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import type { Listing, RankedHub, Jobsite } from '@/lib/supabase'
+import { Navbar } from '@/components/Navbar'
+import { useGatedAction, useAuth } from '@/contexts/AuthContext'
+import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 // Types
 interface PlanMoveResponse {
@@ -622,16 +625,49 @@ function ListingDrawer({
 }) {
   const [showIntroModal, setShowIntroModal] = useState(false)
   const [introMessage, setIntroMessage] = useState('')
+  const { gateAction } = useGatedAction()
+  const { user } = useAuth()
+  const supabase = getSupabaseBrowserClient()
 
   if (!listing) return null
 
   const photoCount = getPhotoCount(listing)
 
-  const handleRequestIntro = (e: React.FormEvent) => {
+  const handleRequestIntroClick = () => {
+    gateAction(() => setShowIntroModal(true))
+  }
+
+  const handleRequestIntro = async (e: React.FormEvent) => {
     e.preventDefault()
-    alert('Intro request sent! (Demo mode - no actual database write)')
-    setShowIntroModal(false)
-    setIntroMessage('')
+    
+    if (!user) {
+      alert('Please sign in to request an intro')
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('intro_requests')
+        .insert({
+          listing_id: listing.id,
+          requester_user_id: user.id,
+          message: introMessage,
+          status: 'pending',
+        })
+
+      if (error) {
+        console.error('Error creating intro request:', error)
+        alert('Error sending intro request: ' + error.message)
+        return
+      }
+
+      alert('Intro request sent! The listing owner will be notified.')
+      setShowIntroModal(false)
+      setIntroMessage('')
+    } catch (err) {
+      console.error('Error:', err)
+      alert('An error occurred while sending the intro request')
+    }
   }
 
   return (
@@ -706,7 +742,7 @@ function ListingDrawer({
 
           <button
             style={drawerStyles.introButton}
-            onClick={() => setShowIntroModal(true)}
+            onClick={handleRequestIntroClick}
           >
             Request Intro
           </button>
@@ -955,7 +991,6 @@ const scarcityStyles = {
 // Main Page Component
 export default function JobsiteExplorerPage() {
   const params = useParams()
-  const router = useRouter()
   const slug = params.slug as string
 
   const [loading, setLoading] = useState(true)
@@ -963,6 +998,7 @@ export default function JobsiteExplorerPage() {
   const [selectedHub, setSelectedHub] = useState<string | null>(null)
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
   const [showPlanModal, setShowPlanModal] = useState(false)
+  const [showPostModal, setShowPostModal] = useState(false)
   const [filters, setFilters] = useState<PlanFilters>({
     budget_min: '',
     budget_max: '',
@@ -972,6 +1008,24 @@ export default function JobsiteExplorerPage() {
     move_in_date: '',
   })
   const [filtersApplied, setFiltersApplied] = useState(false)
+
+  // Auth hooks for gating
+  const { gateAction } = useGatedAction()
+  const { user } = useAuth()
+  const supabase = getSupabaseBrowserClient()
+
+  // New listing form
+  const [newListing, setNewListing] = useState({
+    city: '',
+    area: '',
+    rent_min: '',
+    rent_max: '',
+    move_in: '',
+    room_type: 'private_room',
+    commute_area: '',
+    details: '',
+    shift: 'day',
+  })
 
   const fetchData = useCallback(async (appliedFilters?: PlanFilters) => {
     setLoading(true)
@@ -1033,6 +1087,75 @@ export default function JobsiteExplorerPage() {
     fetchData(defaultFilters)
   }
 
+  // Gated post listing handler
+  const handlePostListingClick = () => {
+    gateAction(() => {
+      // Pre-fill city from jobsite if available
+      if (data?.jobsite) {
+        setNewListing(prev => ({
+          ...prev,
+          city: `${data.jobsite!.city}, ${data.jobsite!.state}`,
+          commute_area: data.jobsite!.name,
+        }))
+      }
+      setShowPostModal(true)
+    })
+  }
+
+  const handlePostListing = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!user) {
+      alert('Please sign in to post a listing')
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('listings')
+        .insert({
+          user_id: user.id,
+          city: newListing.city,
+          area: newListing.area || null,
+          rent_min: newListing.rent_min ? parseInt(newListing.rent_min) : null,
+          rent_max: newListing.rent_max ? parseInt(newListing.rent_max) : null,
+          move_in: newListing.move_in || null,
+          room_type: newListing.room_type,
+          commute_area: newListing.commute_area || null,
+          details: newListing.details || null,
+          shift: newListing.shift,
+          is_active: true,
+          jobsite_id: data?.jobsite?.id || null,
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating listing:', error)
+        alert('Error creating listing: ' + error.message)
+        return
+      }
+
+      alert('Listing posted successfully!')
+      setShowPostModal(false)
+      setNewListing({
+        city: '',
+        area: '',
+        rent_min: '',
+        rent_max: '',
+        move_in: '',
+        room_type: 'private_room',
+        commute_area: '',
+        details: '',
+        shift: 'day',
+      })
+      fetchData()
+    } catch (err) {
+      console.error('Error:', err)
+      alert('An error occurred while posting the listing')
+    }
+  }
+
   // Filter listings by selected hub
   const displayedListings = selectedHub
     ? data?.listings.filter((l) => l.hub_id === selectedHub) || []
@@ -1058,18 +1181,7 @@ export default function JobsiteExplorerPage() {
   return (
     <div style={pageStyles.page}>
       {/* Header */}
-      <header style={pageStyles.header}>
-        <div style={pageStyles.headerContent}>
-          <button style={pageStyles.backButton} onClick={() => router.push('/design')}>
-            ← Back
-          </button>
-          <div style={pageStyles.logo}>
-            <span style={pageStyles.logoIcon}>🏠</span>
-            <span style={pageStyles.logoText}>SiteSisters</span>
-          </div>
-          <div style={{ width: '80px' }} /> {/* Spacer for centering */}
-        </div>
-      </header>
+      <Navbar onPostListing={handlePostListingClick} />
 
       {/* Jobsite Hero */}
       <section style={pageStyles.hero}>
@@ -1193,7 +1305,7 @@ export default function JobsiteExplorerPage() {
                   </p>
                   <button
                     style={pageStyles.postCTA}
-                    onClick={() => router.push('/design')}
+                    onClick={handlePostListingClick}
                   >
                     + Post a Listing
                   </button>
@@ -1214,7 +1326,7 @@ export default function JobsiteExplorerPage() {
                 <div style={pageStyles.ctaButtons}>
                   <button
                     style={pageStyles.ctaButtonPrimary}
-                    onClick={() => router.push('/design')}
+                    onClick={handlePostListingClick}
                   >
                     Post a Listing
                   </button>
@@ -1246,6 +1358,123 @@ export default function JobsiteExplorerPage() {
         onClose={() => setSelectedListing(null)}
       />
 
+      {/* Post Listing Modal */}
+      {showPostModal && (
+        <div style={modalStyles.overlay} onClick={() => setShowPostModal(false)}>
+          <div style={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
+            <button style={modalStyles.closeButton} onClick={() => setShowPostModal(false)}>
+              ✕
+            </button>
+            <h2 style={modalStyles.title}>Post a Listing</h2>
+            <form onSubmit={handlePostListing} style={modalStyles.form}>
+              <div style={modalStyles.formRow}>
+                <div style={modalStyles.formGroup}>
+                  <label style={modalStyles.label}>City *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Phoenix, AZ"
+                    value={newListing.city}
+                    onChange={(e) => setNewListing({ ...newListing, city: e.target.value })}
+                    style={modalStyles.input}
+                  />
+                </div>
+                <div style={modalStyles.formGroup}>
+                  <label style={modalStyles.label}>Area/Neighborhood</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Downtown, Chandler"
+                    value={newListing.area}
+                    onChange={(e) => setNewListing({ ...newListing, area: e.target.value })}
+                    style={modalStyles.input}
+                  />
+                </div>
+              </div>
+              <div style={modalStyles.formRow}>
+                <div style={modalStyles.formGroup}>
+                  <label style={modalStyles.label}>Min Rent ($)</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 700"
+                    value={newListing.rent_min}
+                    onChange={(e) => setNewListing({ ...newListing, rent_min: e.target.value })}
+                    style={modalStyles.input}
+                  />
+                </div>
+                <div style={modalStyles.formGroup}>
+                  <label style={modalStyles.label}>Max Rent ($)</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 1000"
+                    value={newListing.rent_max}
+                    onChange={(e) => setNewListing({ ...newListing, rent_max: e.target.value })}
+                    style={modalStyles.input}
+                  />
+                </div>
+              </div>
+              <div style={modalStyles.formRow}>
+                <div style={modalStyles.formGroup}>
+                  <label style={modalStyles.label}>Room Type *</label>
+                  <select
+                    required
+                    value={newListing.room_type}
+                    onChange={(e) => setNewListing({ ...newListing, room_type: e.target.value })}
+                    style={modalStyles.select}
+                  >
+                    <option value="private_room">Private Room</option>
+                    <option value="shared_room">Shared Room</option>
+                    <option value="entire_place">Entire Place</option>
+                  </select>
+                </div>
+                <div style={modalStyles.formGroup}>
+                  <label style={modalStyles.label}>Shift</label>
+                  <select
+                    value={newListing.shift}
+                    onChange={(e) => setNewListing({ ...newListing, shift: e.target.value })}
+                    style={modalStyles.select}
+                  >
+                    <option value="day">Day Shift</option>
+                    <option value="swing">Swing Shift</option>
+                    <option value="night">Night Shift</option>
+                  </select>
+                </div>
+              </div>
+              <div style={modalStyles.formGroup}>
+                <label style={modalStyles.label}>Move-in Date</label>
+                <input
+                  type="date"
+                  value={newListing.move_in}
+                  onChange={(e) => setNewListing({ ...newListing, move_in: e.target.value })}
+                  style={modalStyles.input}
+                />
+              </div>
+              <div style={modalStyles.formGroup}>
+                <label style={modalStyles.label}>Commute Area / Job Site</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Intel Ocotillo, TSMC Arizona"
+                  value={newListing.commute_area}
+                  onChange={(e) => setNewListing({ ...newListing, commute_area: e.target.value })}
+                  style={modalStyles.input}
+                />
+              </div>
+              <div style={modalStyles.formGroup}>
+                <label style={modalStyles.label}>Details</label>
+                <textarea
+                  placeholder="Tell potential roommates about yourself, your schedule, preferences, etc."
+                  value={newListing.details}
+                  onChange={(e) => setNewListing({ ...newListing, details: e.target.value })}
+                  style={{ ...modalStyles.input, minHeight: '100px', resize: 'vertical' }}
+                />
+              </div>
+              <button type="submit" style={modalStyles.submitButton}>
+                Post Listing
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <footer style={pageStyles.footer}>
         <p>© 2026 SiteSisters. All rights reserved.</p>
@@ -1259,43 +1488,6 @@ const pageStyles = {
   page: {
     minHeight: '100vh',
     background: '#f8fafc',
-  } as React.CSSProperties,
-  header: {
-    background: '#1e293b',
-    padding: '16px 24px',
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
-  } as React.CSSProperties,
-  headerContent: {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  } as React.CSSProperties,
-  backButton: {
-    background: 'transparent',
-    border: 'none',
-    color: 'white',
-    fontSize: '0.95rem',
-    cursor: 'pointer',
-    padding: '8px 12px',
-    borderRadius: '6px',
-  } as React.CSSProperties,
-  logo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-  } as React.CSSProperties,
-  logoIcon: {
-    fontSize: '1.8rem',
-  } as React.CSSProperties,
-  logoText: {
-    color: 'white',
-    fontSize: '1.5rem',
-    fontWeight: 700,
-    letterSpacing: '-0.5px',
   } as React.CSSProperties,
   hero: {
     background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
