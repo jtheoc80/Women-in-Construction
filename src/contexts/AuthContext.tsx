@@ -3,15 +3,13 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { usePathname, useRouter } from 'next/navigation'
 
 export interface Profile {
   id: string
   display_name: string | null
   first_name: string | null
-  last_initial: string | null
   home_city: string | null
-  organization_id: string | null
-  bio: string | null
   created_at: string
   updated_at: string
 }
@@ -24,12 +22,6 @@ interface AuthContextType {
   isProfileComplete: boolean
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
-  openAuthDialog: () => void
-  openProfileSheet: () => void
-  setAuthDialogOpen: (open: boolean) => void
-  setProfileSheetOpen: (open: boolean) => void
-  authDialogOpen: boolean
-  profileSheetOpen: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -39,8 +31,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [authDialogOpen, setAuthDialogOpen] = useState(false)
-  const [profileSheetOpen, setProfileSheetOpen] = useState(false)
 
   const supabase = getSupabaseBrowserClient()
 
@@ -98,14 +88,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null)
   }, [supabase])
 
-  const openAuthDialog = useCallback(() => {
-    setAuthDialogOpen(true)
-  }, [])
-
-  const openProfileSheet = useCallback(() => {
-    setProfileSheetOpen(true)
-  }, [])
-
   useEffect(() => {
     // Get initial session
     const initializeAuth = async () => {
@@ -133,23 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(newSession?.user ?? null)
 
         if (newSession?.user) {
-          const profileData = await fetchProfile(newSession.user.id)
-          
-          // If user just signed in and profile is incomplete, open profile sheet
-          if (event === 'SIGNED_IN' && profileData) {
-            const isComplete = Boolean(
-              profileData.first_name && 
-              profileData.first_name.trim() !== '' && 
-              profileData.home_city && 
-              profileData.home_city.trim() !== ''
-            )
-            if (!isComplete) {
-              setAuthDialogOpen(false)
-              setProfileSheetOpen(true)
-            } else {
-              setAuthDialogOpen(false)
-            }
-          }
+          await fetchProfile(newSession.user.id)
         } else {
           setProfile(null)
         }
@@ -169,12 +135,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isProfileComplete,
     signOut,
     refreshProfile,
-    openAuthDialog,
-    openProfileSheet,
-    setAuthDialogOpen,
-    setProfileSheetOpen,
-    authDialogOpen,
-    profileSheetOpen,
   }
 
   return (
@@ -194,22 +154,31 @@ export function useAuth() {
 
 // Hook for gating actions behind auth + profile completion
 export function useGatedAction() {
-  const { user, isProfileComplete, openAuthDialog, openProfileSheet } = useAuth()
+  const { user, isProfileComplete } = useAuth()
+  const router = useRouter()
+  const pathname = usePathname()
 
-  const gateAction = useCallback((action: () => void) => {
+  // Avoid useSearchParams here to keep pages pre-renderable.
+  const currentUrl = pathname
+
+  const gateAction = useCallback((action: () => void, nextUrl?: string) => {
+    const desiredNext = nextUrl || currentUrl
+    const safeNext = desiredNext.startsWith('/') ? desiredNext : '/'
+    const encodedNext = encodeURIComponent(safeNext)
+
     if (!user) {
-      openAuthDialog()
+      router.push(`/signup?next=${encodedNext}`)
       return false
     }
-    
+
     if (!isProfileComplete) {
-      openProfileSheet()
+      router.push(`/account?onboarding=1&next=${encodedNext}`)
       return false
     }
-    
+
     action()
     return true
-  }, [user, isProfileComplete, openAuthDialog, openProfileSheet])
+  }, [user, isProfileComplete, router, currentUrl])
 
   return { gateAction, isAuthed: !!user, isProfileComplete }
 }
