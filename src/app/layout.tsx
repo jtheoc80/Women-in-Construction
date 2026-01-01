@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Women in Construction - Find Your Roommate',
-  description: 'A community platform helping women in construction find compatible roommates in their city.',
+  title: 'SiteSisters - Roommates Who Get the Jobsite Schedule',
+  description: 'Women-first roommate matching for construction & data center projects. No public contact info. Intros by request.',
 }
 
 export default function RootLayout({

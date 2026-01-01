@@ -1,56 +1,55 @@
-# Women in Construction - Roommate Finder
+# SiteSisters - Roommate Matching for Women in Construction
 
-A community platform helping women in the construction industry find compatible roommates.
+**Roommates who get the jobsite schedule.**
+
+Women-first roommate matching for construction & data center projects. No public contact info. Intros by request.
+
+## Features
+
+- 🏠 **Browse Listings** - Filter by city, rent range, and room type
+- 📝 **Post a Listing** - Share your housing availability or roommate search
+- 🤝 **Request Intros** - Connect safely without exposing contact info publicly
+- 🚨 **Report System** - Keep the community safe with anonymous reporting
 
 ## Tech Stack
 
-- **Framework**: Next.js 16
-- **Language**: TypeScript
-- **Styling**: CSS-in-JS
-- **Database**: PostgreSQL (schema in `/database/schema.sql`)
+- **Frontend**: Next.js 14 (App Router)
+- **Database**: Supabase (PostgreSQL)
+- **Styling**: CSS-in-JS (inline styles)
 
 ## Getting Started
 
-### Prerequisites
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-- Node.js 18+
-- npm or yarn
+2. Set up environment variables:
+   ```bash
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
 
-### Installation
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-```bash
-npm install
-```
-
-### Development
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser.
-
-### Build
-
-```bash
-npm run build
-```
-
-### Production
-
-```bash
-npm start
-```
+4. Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 ## Database Schema
 
-The database schema is located in `/database/schema.sql` and includes:
+See `database/schema.sql` for the complete database structure including:
+- `profiles` - User profiles
+- `listings` - Roommate listings
+- `intro_requests` - Introduction requests between users
+- `reports` - Moderation reports
 
-- **profiles**: User profiles linked to authentication
-- **listings**: Room/roommate listings with location and preferences
-- **intro_requests**: Connection requests between users
-- **reports**: Content moderation system
+## Routes
 
-## Deployment
+- `/` - Redirects to `/design`
+- `/design` - Main SiteSisters marketplace UI with filters, listings grid, and detail drawer
 
-This project is configured for deployment on Vercel. Simply connect your GitHub repository to Vercel for automatic deployments.
+---
+
+Built for women who build. 🏗️
