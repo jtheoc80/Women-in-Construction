@@ -4,8 +4,10 @@ import React from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { BrandMark } from '@/components/BrandMark'
+import { InviteDialog } from '@/components/InviteDialog'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Link2 } from 'lucide-react'
 
 interface NavbarProps {
   onPostListing?: () => void
@@ -81,6 +83,14 @@ export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
                   >
                     Inbox
                   </Link>
+                  <InviteDialog
+                    trigger={
+                      <button className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-white/90 hover:bg-white/10">
+                        <Link2 className="h-4 w-4" />
+                        Invite friends
+                      </button>
+                    }
+                  />
                   <button
                     onClick={signOut}
                     className="block w-full px-3 py-2 text-left text-sm text-white/90 hover:bg-white/10"
