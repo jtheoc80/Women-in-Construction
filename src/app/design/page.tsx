@@ -349,19 +349,72 @@ export default function DesignPage() {
 
       {/* Hero */}
       <section style={styles.hero}>
-        <h1 style={styles.heroTitle}>Roommates who get the jobsite schedule.</h1>
+        <h1 style={styles.heroTitle}>A housing network for women who build.</h1>
         <p style={styles.heroSubtitle}>
-          Women-first roommate matching for construction &amp; data center projects. 
-          No public contact info. Intros by request.
+          Find roommates near construction and data center jobsites—built for long shifts,
+          remote towns, and tight housing markets. No public contact info. Intros by request.
         </p>
-        <a href="/jobsites" style={styles.exploreButton}>
-          <Target
-            aria-hidden="true"
-            size={16}
-            style={{ marginRight: '8px', verticalAlign: 'text-bottom' }}
-          />
-          Explore Housing by Jobsite
-        </a>
+
+        <div style={styles.heroPills} aria-label="Trust and safety">
+          <span style={styles.heroPill}>Private by default</span>
+          <span style={styles.heroPill}>Request-to-connect</span>
+          <span style={styles.heroPill}>Report + moderation</span>
+        </div>
+
+        <div style={styles.heroCtas}>
+          <a href="/jobsites" style={styles.primaryCta}>
+            <Target
+              aria-hidden="true"
+              size={16}
+              style={{ marginRight: '8px', verticalAlign: 'text-bottom' }}
+            />
+            Plan my move
+          </a>
+          <a href="#listings" style={styles.secondaryCta}>
+            <MapPin
+              aria-hidden="true"
+              size={16}
+              style={{ marginRight: '8px', verticalAlign: 'text-bottom' }}
+            />
+            Browse listings
+          </a>
+        </div>
+
+        <p style={styles.heroMicrocopy}>
+          You control who can contact you. Details are shared only if you accept.
+        </p>
+      </section>
+
+      {/* Hero follow-on */}
+      <section style={styles.featureSection}>
+        <div style={styles.featureInner}>
+          <h2 style={styles.featureTitle}>
+            Built for tough schedules and tougher housing markets.
+          </h2>
+          <div style={styles.featureGrid}>
+            <div style={styles.featureCard}>
+              <h3 style={styles.featureCardTitle}>Jobsite hubs</h3>
+              <p style={styles.featureCardText}>
+                Start with the jobsite. See nearby towns, commute-friendly areas, and the kind of
+                housing people are actually finding.
+              </p>
+            </div>
+            <div style={styles.featureCard}>
+              <h3 style={styles.featureCardTitle}>Shift-aware matches</h3>
+              <p style={styles.featureCardText}>
+                Find roommates who fit real work patterns—early starts, nights, rotating schedules,
+                and move-in windows tied to project timelines.
+              </p>
+            </div>
+            <div style={styles.featureCard}>
+              <h3 style={styles.featureCardTitle}>Safe introductions</h3>
+              <p style={styles.featureCardText}>
+                No public contact info. Request an intro, review the ask, and share details only
+                when you’re ready.
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Filters */}
@@ -407,7 +460,7 @@ export default function DesignPage() {
       </section>
 
       {/* Listings Grid */}
-      <section style={styles.listingsSection}>
+      <section id="listings" style={styles.listingsSection}>
         <h2 style={styles.sectionTitle}>
           {loading ? 'Loading listings...' : `${listings.length} Listings Available`}
         </h2>
@@ -778,17 +831,107 @@ const styles: { [key: string]: React.CSSProperties } = {
     margin: '0 auto',
     lineHeight: 1.6,
   },
-  exploreButton: {
-    display: 'inline-block',
+  heroPills: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: '10px',
+    marginTop: '18px',
+  },
+  heroPill: {
+    border: '1px solid rgba(255,255,255,0.18)',
+    background: 'rgba(255,255,255,0.06)',
+    color: 'rgba(255,255,255,0.85)',
+    padding: '8px 12px',
+    borderRadius: '999px',
+    fontSize: '0.9rem',
+    fontWeight: 600,
+    letterSpacing: '0.01em',
+  },
+  heroCtas: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: '12px',
     marginTop: '24px',
+  },
+  primaryCta: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     background: '#f97316',
     color: 'white',
-    padding: '14px 28px',
-    borderRadius: '8px',
+    padding: '14px 22px',
+    borderRadius: '10px',
     fontSize: '1rem',
-    fontWeight: 600,
+    fontWeight: 700,
     textDecoration: 'none',
     transition: 'background 0.2s',
+    minWidth: '180px',
+  },
+  secondaryCta: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'rgba(255,255,255,0.06)',
+    color: 'rgba(255,255,255,0.92)',
+    padding: '14px 22px',
+    borderRadius: '10px',
+    fontSize: '1rem',
+    fontWeight: 700,
+    textDecoration: 'none',
+    border: '1px solid rgba(255,255,255,0.18)',
+    transition: 'background 0.2s',
+    minWidth: '180px',
+  },
+  heroMicrocopy: {
+    marginTop: '14px',
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: '0.95rem',
+    maxWidth: '640px',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    lineHeight: 1.5,
+  },
+  featureSection: {
+    background: '#f8fafc',
+    padding: '34px 24px 10px',
+  },
+  featureInner: {
+    maxWidth: '1100px',
+    margin: '0 auto',
+  },
+  featureTitle: {
+    fontSize: '1.5rem',
+    fontWeight: 700,
+    color: '#0f172a',
+    textAlign: 'center',
+    marginBottom: '18px',
+  },
+  featureGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+    gap: '16px',
+  },
+  featureCard: {
+    background: 'white',
+    border: '1px solid #e2e8f0',
+    borderRadius: '14px',
+    padding: '18px 18px',
+    boxShadow: '0 1px 0 rgba(15,23,42,0.04)',
+  },
+  featureCardTitle: {
+    margin: 0,
+    fontSize: '1.05rem',
+    fontWeight: 800,
+    color: '#0f172a',
+    marginBottom: '8px',
+  },
+  featureCardText: {
+    margin: 0,
+    color: '#475569',
+    lineHeight: 1.6,
+    fontSize: '0.98rem',
   },
   filters: {
     background: 'white',
