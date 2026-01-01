@@ -6,6 +6,16 @@ import type { Listing, RankedHub, Jobsite } from '@/lib/supabase'
 import { Navbar } from '@/components/Navbar'
 import { useGatedAction, useAuth } from '@/contexts/AuthContext'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
+import {
+  AlertTriangle,
+  ImageOff,
+  Lightbulb,
+  Moon,
+  Sun,
+  Sunrise,
+  Target,
+  X,
+} from 'lucide-react'
 
 // Types
 interface PlanMoveResponse {
@@ -206,7 +216,11 @@ function ListingCard({
           </>
         ) : (
           <div style={listingCardStyles.noPhoto}>
-            <span style={listingCardStyles.noPhotoIcon}>📷</span>
+            <ImageOff
+              aria-hidden="true"
+              size={32}
+              style={listingCardStyles.noPhotoIcon}
+            />
             <span style={listingCardStyles.noPhotoText}>No photos yet</span>
           </div>
         )}
@@ -231,9 +245,24 @@ function ListingCard({
 
         {listing.shift && (
           <div style={listingCardStyles.shift}>
-            {listing.shift === 'day' && '☀️ Day shift'}
-            {listing.shift === 'swing' && '🌅 Swing shift'}
-            {listing.shift === 'night' && '🌙 Night shift'}
+            {listing.shift === 'day' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Sun aria-hidden="true" size={14} />
+                Day shift
+              </span>
+            )}
+            {listing.shift === 'swing' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Sunrise aria-hidden="true" size={14} />
+                Swing shift
+              </span>
+            )}
+            {listing.shift === 'night' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Moon aria-hidden="true" size={14} />
+                Night shift
+              </span>
+            )}
           </div>
         )}
 
@@ -384,7 +413,7 @@ function PlanMyMoveModal({
     <div style={modalStyles.overlay} onClick={onClose}>
       <div style={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
         <button style={modalStyles.closeButton} onClick={onClose}>
-          ✕
+          <X aria-hidden="true" size={18} />
         </button>
         <h2 style={modalStyles.title}>Plan My Move</h2>
         <p style={modalStyles.subtitle}>
@@ -674,7 +703,7 @@ function ListingDrawer({
     <div style={drawerStyles.overlay} onClick={onClose}>
       <div style={drawerStyles.drawer} onClick={(e) => e.stopPropagation()}>
         <button style={drawerStyles.closeButton} onClick={onClose}>
-          ✕
+          <X aria-hidden="true" size={18} />
         </button>
 
         {/* Photo Gallery */}
@@ -720,9 +749,30 @@ function ListingDrawer({
               <div style={drawerStyles.metaItem}>
                 <span style={drawerStyles.metaLabel}>Shift</span>
                 <span style={drawerStyles.metaValue}>
-                  {listing.shift === 'day' && '☀️ Day'}
-                  {listing.shift === 'swing' && '🌅 Swing'}
-                  {listing.shift === 'night' && '🌙 Night'}
+                  {listing.shift === 'day' && (
+                    <span
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <Sun aria-hidden="true" size={14} />
+                      Day
+                    </span>
+                  )}
+                  {listing.shift === 'swing' && (
+                    <span
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <Sunrise aria-hidden="true" size={14} />
+                      Swing
+                    </span>
+                  )}
+                  {listing.shift === 'night' && (
+                    <span
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <Moon aria-hidden="true" size={14} />
+                      Night
+                    </span>
+                  )}
                 </span>
               </div>
             )}
@@ -760,7 +810,7 @@ function ListingDrawer({
               style={modalStyles.closeButton}
               onClick={() => setShowIntroModal(false)}
             >
-              ✕
+              <X aria-hidden="true" size={18} />
             </button>
             <h2 style={modalStyles.title}>Request an Introduction</h2>
             <p style={modalStyles.subtitle}>
@@ -932,7 +982,9 @@ function ScarcityAlert({
 
   return (
     <div style={scarcityStyles.container}>
-      <div style={scarcityStyles.icon}>⚠️</div>
+      <div style={scarcityStyles.icon}>
+        <AlertTriangle aria-hidden="true" size={18} />
+      </div>
       <div style={scarcityStyles.content}>
         <div style={scarcityStyles.title}>Limited Housing Near {jobsiteName}</div>
         <div style={scarcityStyles.text}>
@@ -947,8 +999,11 @@ function ScarcityAlert({
           )}
         </div>
         <div style={scarcityStyles.tip}>
-          💡 Tip: Consider expanding your search to nearby hubs or posting a
-          &quot;Looking for Housing&quot; listing.
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Lightbulb aria-hidden="true" size={16} />
+            Tip: Consider expanding your search to nearby hubs or posting a
+            &quot;Looking for Housing&quot; listing.
+          </span>
         </div>
       </div>
     </div>
@@ -1197,7 +1252,10 @@ export default function JobsiteExplorerPage() {
           style={pageStyles.planButton}
           onClick={() => setShowPlanModal(true)}
         >
-          🎯 Plan My Move
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <Target aria-hidden="true" size={16} />
+            Plan My Move
+          </span>
         </button>
       </section>
 
@@ -1363,7 +1421,7 @@ export default function JobsiteExplorerPage() {
         <div style={modalStyles.overlay} onClick={() => setShowPostModal(false)}>
           <div style={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
             <button style={modalStyles.closeButton} onClick={() => setShowPostModal(false)}>
-              ✕
+              <X aria-hidden="true" size={18} />
             </button>
             <h2 style={modalStyles.title}>Post a Listing</h2>
             <form onSubmit={handlePostListing} style={modalStyles.form}>

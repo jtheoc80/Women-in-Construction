@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Navbar } from '@/components/Navbar'
 import { useGatedAction, useAuth } from '@/contexts/AuthContext'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { MapPin, Target, X } from 'lucide-react'
 
 // Types based on database schema
 interface Listing {
@@ -320,7 +321,12 @@ export default function DesignPage() {
           No public contact info. Intros by request.
         </p>
         <a href="/jobsites" style={styles.exploreButton}>
-          🎯 Explore Housing by Jobsite
+          <Target
+            aria-hidden="true"
+            size={16}
+            style={{ marginRight: '8px', verticalAlign: 'text-bottom' }}
+          />
+          Explore Housing by Jobsite
         </a>
       </section>
 
@@ -401,7 +407,12 @@ export default function DesignPage() {
                   </p>
                   {listing.commute_area && (
                     <p style={styles.cardCommute}>
-                      <span style={styles.commuteIcon}>📍</span> Near {listing.commute_area}
+                      <MapPin
+                        aria-hidden="true"
+                        style={{ ...styles.commuteIcon, verticalAlign: 'text-bottom' }}
+                        size={14}
+                      />{' '}
+                      Near {listing.commute_area}
                     </p>
                   )}
                   <p style={styles.cardMoveIn}>
@@ -424,7 +435,7 @@ export default function DesignPage() {
         <div style={styles.drawerOverlay} onClick={() => setSelectedListing(null)}>
           <div style={styles.drawer} onClick={(e) => e.stopPropagation()}>
             <button style={styles.closeButton} onClick={() => setSelectedListing(null)}>
-              ✕
+              <X aria-hidden="true" size={18} />
             </button>
             <div style={styles.drawerContent}>
               <h2 style={styles.drawerTitle}>{selectedListing.city}</h2>
@@ -490,7 +501,7 @@ export default function DesignPage() {
         <div style={styles.modalOverlay} onClick={() => setShowPostModal(false)}>
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
             <button style={styles.closeButton} onClick={() => setShowPostModal(false)}>
-              ✕
+              <X aria-hidden="true" size={18} />
             </button>
             <h2 style={styles.modalTitle}>Post a Listing</h2>
             <form onSubmit={handlePostListing} style={styles.form}>
@@ -596,7 +607,7 @@ export default function DesignPage() {
         <div style={styles.modalOverlay} onClick={() => setShowIntroModal(false)}>
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
             <button style={styles.closeButton} onClick={() => setShowIntroModal(false)}>
-              ✕
+              <X aria-hidden="true" size={18} />
             </button>
             <h2 style={styles.modalTitle}>Request an Introduction</h2>
             <p style={styles.modalSubtitle}>
@@ -628,7 +639,7 @@ export default function DesignPage() {
         <div style={styles.modalOverlay} onClick={() => setShowReportModal(false)}>
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
             <button style={styles.closeButton} onClick={() => setShowReportModal(false)}>
-              ✕
+              <X aria-hidden="true" size={18} />
             </button>
             <h2 style={styles.modalTitle}>Report Listing</h2>
             <p style={styles.modalSubtitle}>
