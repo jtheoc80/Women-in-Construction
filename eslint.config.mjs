@@ -10,7 +10,6 @@ export default [
     files: ["**/*.{ts,tsx}"],
     plugins: {
       react,
-      "react-hooks": reactHooks,
     },
     languageOptions: {
       parserOptions: {
@@ -21,10 +20,9 @@ export default [
     },
     rules: {
       "react/react-in-jsx-scope": "off",
-      "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
     },
   },
+  reactHooks.configs.flat.recommended,
   {
     ignores: [".next/**", "node_modules/**"],
   },
