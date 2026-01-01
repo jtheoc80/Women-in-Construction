@@ -73,7 +73,7 @@ export function SignupClient() {
         return
       }
 
-      setMessage('Enter the 6-digit code from your email.')
+      setMessage('Enter the verification code from your email.')
       setStep('verify')
     } finally {
       setLoading(false)
@@ -103,7 +103,7 @@ export function SignupClient() {
         return
       }
 
-      setMessage('Enter the 6-digit code from your text message.')
+      setMessage('Enter the verification code from your text message.')
       setStep('verify')
     } finally {
       setLoading(false)
@@ -176,7 +176,7 @@ export function SignupClient() {
           Sign in
         </h1>
         <p className="mt-2 text-slate-600">
-          We’ll send a 6-digit code. No magic links.
+          We’ll send you a verification code. No magic links.
         </p>
 
         <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -228,24 +228,24 @@ export function SignupClient() {
                 <form onSubmit={handleVerify} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email-otp" className="text-slate-700">
-                      6-digit code
+                      Verification code
                     </Label>
                     <Input
                       id="email-otp"
                       type="text"
                       inputMode="numeric"
                       autoComplete="one-time-code"
-                      placeholder="123456"
+                      placeholder="12345678"
                       value={otp}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
                       required
-                      maxLength={6}
+                      maxLength={8}
                       className="text-center text-2xl tracking-widest"
                     />
                     {message && <p className="text-sm text-slate-600">{message}</p>}
                   </div>
                   {error && <p className="text-sm text-red-600">{error}</p>}
-                  <Button type="submit" disabled={loading || otp.trim().length !== 6} className="w-full">
+                  <Button type="submit" disabled={loading || otp.trim().length < 6} className="w-full">
                     {loading ? 'Verifying…' : 'Verify & continue'}
                   </Button>
                   <button
@@ -288,24 +288,24 @@ export function SignupClient() {
                 <form onSubmit={handleVerify} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone-otp" className="text-slate-700">
-                      6-digit code
+                      Verification code
                     </Label>
                     <Input
                       id="phone-otp"
                       type="text"
                       inputMode="numeric"
                       autoComplete="one-time-code"
-                      placeholder="123456"
+                      placeholder="12345678"
                       value={otp}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
                       required
-                      maxLength={6}
+                      maxLength={8}
                       className="text-center text-2xl tracking-widest"
                     />
                     {message && <p className="text-sm text-slate-600">{message}</p>}
                   </div>
                   {error && <p className="text-sm text-red-600">{error}</p>}
-                  <Button type="submit" disabled={loading || otp.trim().length !== 6} className="w-full">
+                  <Button type="submit" disabled={loading || otp.trim().length < 6} className="w-full">
                     {loading ? 'Verifying…' : 'Verify & continue'}
                   </Button>
                   <button
