@@ -8,7 +8,9 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const PRIMARY_DOMAIN = 'sitesistersconstruction.com'
 
 // Routes that require authentication
-const PROTECTED_ROUTES = ['/design', '/app', '/account', '/inbox', '/browse']
+// Note: /design is intentionally NOT protected - it's the public landing page
+// that uses useGatedAction() for protected actions like posting
+const PROTECTED_ROUTES = ['/app', '/account', '/inbox', '/browse']
 
 // Routes that should redirect to /design if already authenticated
 const AUTH_ROUTES = ['/sign-in', '/sign-up', '/signup']
