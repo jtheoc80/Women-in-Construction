@@ -48,9 +48,9 @@ export function SiteLogoMark({
         opacity="0.85"
       />
 
-      {/* Face + neck silhouette */}
+      {/* Face + neck silhouette - clear woman's profile */}
       <path
-        d="M34 22c-7 1-12 7-12 14 0 6 2 10 5 13 2 2 4 3 5 4 4 2 10 2 13-2 2-2 3-4 3-7 0-4-2-7-6-9l-4-2c-2-1-3-3-3-6 0-2 0-3-1-5z"
+        d="M38 35 L38 39 L40 41 L44 43 L49 47 L50 49 L48 50 L45 50 L46 52 L46 55 L44 57 L40 59 L36 62 L28 62 L30 58 L31 54 L30 50 L27 46 L26 42 L27 38 L30 35 Z"
         fill="#0B1020"
       />
 
