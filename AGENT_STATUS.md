@@ -2,7 +2,7 @@
 
 ## Session Started: 2026-01-02
 
-### Current Status: IN PROGRESS
+### Current Status: ✅ COMPLETE
 
 ---
 
@@ -19,39 +19,70 @@
 
 ---
 
-## 15:30 - Major Progress
+## 16:00 - All Tasks Complete
 
-### Completed:
+### Summary of Changes:
 
-1. ✅ **Fixed Logo** - Created inline SVG logo (hardhat/house icon in teal)
-2. ✅ **Added next/image domain config** - Supabase Storage + Unsplash configured
-3. ✅ **Created ListingImage component** - Reusable component with:
-   - next/image for optimization
-   - 16:9 aspect ratio (configurable)
-   - Error handling with graceful fallback
-   - Loading placeholder with skeleton animation
-   - Photo count badge via ListingCardImage
-4. ✅ **Updated all image usages**:
-   - `home-client.tsx` - Uses ListingCardImage
-   - `design-client.tsx` - Uses ListingImage + ListingCardImage  
-   - `jobsites/[slug]/page.tsx` - Uses ListingImage
-   - `PostListingModal.tsx` - Uses ListingImage for previews
-5. ✅ **Implemented optimized upload pipeline**:
-   - Sharp for WebP conversion (85% quality)
-   - Auto-resize images >2048px
-   - Auto-rotate based on EXIF
-   - Strip metadata for privacy
-   - Support for JPEG, PNG, WebP, GIF input
-   - 10MB max file size (before conversion)
+#### 1. Fixed Broken Logo
+- Replaced PNG dependency with inline SVG logo (hardhat/house icon in teal)
+- No external file required, renders consistently everywhere
+
+#### 2. Configured next/image for Supabase
+- Added `remotePatterns` in `next.config.js` for:
+  - `*.supabase.co` (Supabase Storage)
+  - `*.supabase.in` (alternate domain)
+  - `images.unsplash.com` (demo images)
+
+#### 3. Created ListingImage Component (`src/components/ListingImage.tsx`)
+- **next/image** for all listing photos with optimization
+- **16:9 aspect ratio** by default (configurable to 4:3, 1:1)
+- **Error handling** with graceful fallback (ImageOff icon + "No photo" text)
+- **Loading placeholder** with skeleton animation
+- **ListingCardImage** wrapper with photo count badge
+- Helper functions: `normalizeListingPhotoUrl`, `getListingHeroImageUrl`, `getListingPhotoUrls`
+
+#### 4. Created PhotoGallery Component (`src/components/PhotoGallery.tsx`)
+- **Mobile-ready** with touch/swipe support
+- **Keyboard navigation** (arrow keys, Escape)
+- **Fullscreen lightbox** mode
+- **Thumbnail strip** navigation
+- **Photo counter** and dot indicators
+- **ListingPhotoGallery** wrapper for listing objects
+
+#### 5. Optimized Upload Pipeline (`src/app/api/upload/route.ts`)
+- **WebP conversion** via Sharp (85% quality)
+- **Auto-resize** images >2048px
+- **Auto-rotate** based on EXIF orientation
+- **Strip metadata** for privacy
+- **Expanded input support**: JPEG, PNG, WebP, GIF
+- **Increased file size limit** to 10MB (before conversion)
+- **Auth requirement** enforced (existing)
+
+#### 6. Updated All Pages
+- `home-client.tsx` - Uses ListingCardImage
+- `design-client.tsx` - Uses ListingCardImage + ListingPhotoGallery
+- `jobsites/[slug]/page.tsx` - Uses ListingImage + ListingPhotoGallery
+- `PostListingModal.tsx` - Uses ListingImage for upload previews
 
 ### Commits Made:
 1. `ebaac07` - Fix: Replace broken logo with SVG, add ListingImage component
 2. `bfaf676` - Update design and jobsites pages to use ListingImage component
 3. `ae0de9a` - Implement optimized upload pipeline with WebP conversion
+4. `00d7864` - Add mobile-ready PhotoGallery component with touch/swipe support
+5. `9ead361` - Update jobsites page to use ListingPhotoGallery
 
-### Next Steps:
-1. Verify RLS policies for anonymous image access
-2. Implement mobile gallery/lightbox with touch support
-3. Final verification of all acceptance criteria
+### Acceptance Criteria Status:
+
+✅ **Anonymous browsing**: `/` and `/browse` load listing cards with images via `next/image`
+✅ **Auth flow**: Upload requires authentication, WebP conversion works, images render after refresh
+✅ **Domain compatibility**: Images use public Supabase Storage URLs (work on any domain)
+✅ **Lint/Build**: `npm run lint` and `npm run build` both pass
+
+### Technical Notes:
+
+1. **Image URLs**: Storage paths are converted to public URLs via `normalizeListingPhotoUrl()`
+2. **RLS policies**: Anonymous read access enabled for `listings` and `poster_profiles` tables
+3. **Storage bucket**: Uses public path pattern (`/storage/v1/object/public/listing-photos/`)
+4. **No signed URLs stored**: Only storage paths saved in DB, public URLs constructed at runtime
 
 ---
