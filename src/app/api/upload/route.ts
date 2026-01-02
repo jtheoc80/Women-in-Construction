@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-admin'
+import { createServerClient } from '@supabase/ssr'
 import { nanoid } from 'nanoid'
 
 // Configuration
@@ -10,17 +11,21 @@ const RATE_LIMIT_BUCKET = 'upload'
 const RATE_LIMIT_WINDOW = 3600 // 1 hour in seconds
 const RATE_LIMIT_MAX = 40 // max 40 uploads per hour per IP
 
-// Get client IP from request
-function getClientIP(req: NextRequest): string {
-  const forwarded = req.headers.get('x-forwarded-for')
-  if (forwarded) {
-    return forwarded.split(',')[0].trim()
-  }
-  const realIP = req.headers.get('x-real-ip')
-  if (realIP) {
-    return realIP
-  }
-  return '127.0.0.1'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+
+// Create a server client for auth verification
+async function createAuthClient(req: NextRequest) {
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return req.cookies.getAll()
+      },
+      setAll() {
+        // Not setting cookies in API routes
+      },
+    },
+  })
 }
 
 // Check and update rate limit
@@ -84,16 +89,34 @@ function getExtension(mimeType: string): string {
  * POST /api/upload
  * Upload photos to Supabase Storage
  * 
+ * REQUIRES: Authenticated user
+ * 
  * Request: multipart/form-data with files under field "files"
  * Response: { ok: true, paths: string[] }
  */
 export async function POST(req: NextRequest) {
   try {
+    // ========================================
+    // 1. AUTHENTICATION CHECK
+    // ========================================
+    const authClient = await createAuthClient(req)
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
+
+    if (authError || !user) {
+      console.log('[Upload] Unauthorized upload attempt')
+      return NextResponse.json(
+        { ok: false, error: 'You must be logged in to upload photos' },
+        { status: 401 }
+      )
+    }
+
+    console.log('[Upload] Authenticated user:', user.id)
+
     const adminClient = createAdminClient()
     
-    // Rate limiting
-    const clientIP = getClientIP(req)
-    const { allowed, remaining } = await checkRateLimit(adminClient, clientIP)
+    // Rate limiting - use user ID for authenticated users
+    const identifier = user.id
+    const { allowed, remaining } = await checkRateLimit(adminClient, identifier)
     
     if (!allowed) {
       return NextResponse.json(
@@ -127,8 +150,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Generate a unique listing ID for this batch (will be used as folder name)
-    const listingId = nanoid(12)
+    // Generate a unique batch ID for this upload (will be used as folder name)
+    // Include user ID prefix for organization and potential future security checks
+    const batchId = nanoid(12)
     const uploadedPaths: string[] = []
     const errors: string[] = []
 
@@ -151,9 +175,10 @@ export async function POST(req: NextRequest) {
       }
 
       // Generate unique filename
+      // Path format: {userId}/{batchId}/{filename} for organization
       const ext = getExtension(file.type)
       const fileName = `${nanoid(16)}.${ext}`
-      const storagePath = `${listingId}/${fileName}`
+      const storagePath = `${user.id}/${batchId}/${fileName}`
 
       // Read file buffer
       const buffer = await file.arrayBuffer()

@@ -8,6 +8,23 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 // Set NEXT_PUBLIC_PRIMARY_DOMAIN to your custom domain to enable canonical redirects
 const PRIMARY_DOMAIN = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'sitesistersconstruction.com'
 
+/**
+ * ROUTE PROTECTION ALLOWLIST
+ * 
+ * PUBLIC (anonymous access allowed):
+ *   Pages: "/", "/browse", "/jobsites", "/sign-in", "/signup"
+ *   API:   GET /api/listings, GET /api/jobsites (handled by route itself)
+ *   Static: /_next/*, images, fonts, etc. (handled by matcher config)
+ * 
+ * PROTECTED (auth required - redirect to /signup):
+ *   Pages: "/account", "/inbox", "/design"
+ *   API:   POST /api/listings, POST /api/upload (auth checked in route handlers)
+ *         /api/invites/*, /api/listing-requests/* (auth checked in route handlers)
+ * 
+ * Note: API routes handle their own auth checks and are NOT blocked by middleware.
+ * This allows /api/listings GET to work for anonymous users while POST requires auth.
+ */
+
 // Routes that require authentication
 // Protected routes redirect to /signup if not authenticated
 const PROTECTED_ROUTES = ['/account', '/inbox', '/design']
@@ -71,7 +88,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url, { status: 301 })
   }
 
-  // Skip auth logic for API routes - they handle their own auth
+  // API routes handle their own authentication in their route handlers.
+  // This allows GET /api/listings to be public while POST /api/listings requires auth.
+  // Do NOT add auth checks here for API routes.
   if (isApiRoute(pathname)) {
     return NextResponse.next()
   }
