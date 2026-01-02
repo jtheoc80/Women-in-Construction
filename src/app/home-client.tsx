@@ -57,9 +57,11 @@ function getPhotoUrl(storagePath: string): string {
 }
 
 function getListingCoverPhotoUrl(listing: Listing): string | null {
+  // First check listing_photos table (user-uploaded photos)
   if (listing.listing_photos && listing.listing_photos.length > 0) {
     return getPhotoUrl(listing.listing_photos[0].storage_path)
   }
+  // Then check direct URL fields (seed/demo data)
   if (listing.cover_photo_url) return listing.cover_photo_url
   if (listing.photo_urls && listing.photo_urls.length > 0) return listing.photo_urls[0]
   return null

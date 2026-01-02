@@ -2,6 +2,44 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { createServerClient } from '@supabase/ssr'
 
+/**
+ * GET /api/listings
+ * Fetch all active listings with poster profiles and photos
+ */
+export async function GET() {
+  try {
+    const adminClient = createAdminClient()
+
+    const { data: listings, error } = await adminClient
+      .from('listings')
+      .select(`
+        *,
+        poster_profiles (*),
+        listing_photos (*)
+      `)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching listings:', error)
+      return NextResponse.json({ error: 'Failed to fetch listings' }, { status: 500 })
+    }
+
+    // Sort photos by sort_order for each listing
+    const listingsWithSortedPhotos = listings.map((listing) => ({
+      ...listing,
+      listing_photos: listing.listing_photos?.sort(
+        (a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order
+      ) || [],
+    }))
+
+    return NextResponse.json(listingsWithSortedPhotos)
+  } catch (error) {
+    console.error('Unexpected error fetching listings:', error)
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
+  }
+}
+
 // Configuration
 const RATE_LIMIT_BUCKET = 'post_listing'
 const RATE_LIMIT_WINDOW = 3600 // 1 hour in seconds
