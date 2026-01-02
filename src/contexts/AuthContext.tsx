@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Safety timeout to ensure loading state doesn't stay true forever
     const loadingTimeout = setTimeout(() => {
       setLoading(false)
-    }, 5000)
+    }, 2500)
 
     // Get initial session
     const initializeAuth = async () => {
@@ -130,6 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setProfile(null)
         }
+        setLoading(false)
       }
     )
 
