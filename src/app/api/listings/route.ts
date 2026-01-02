@@ -183,20 +183,16 @@ export async function GET() {
 
     if (error) {
       console.error('Error fetching listings:', error)
-      return NextResponse.json(
-        { ok: false, error: 'Failed to fetch listings' },
-        { status: 500 }
-      )
+      // Return empty array on error to prevent frontend from breaking
+      return NextResponse.json([])
     }
 
     // Return empty array if no listings found
     return NextResponse.json(listings || [])
   } catch (error) {
     console.error('Unexpected error fetching listings:', error)
-    return NextResponse.json(
-      { ok: false, error: 'An unexpected error occurred' },
-      { status: 500 }
-    )
+    // Return empty array on error to prevent frontend from breaking
+    return NextResponse.json([])
   }
 }
 
