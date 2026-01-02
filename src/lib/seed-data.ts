@@ -90,9 +90,9 @@ export const seedListings: SeedListing[] = [
     commuteArea: 'TSMC Arizona',
     details: 'Clean, quiet 2BR apartment. Looking for a roommate who works similar shifts. I have the day shift at TSMC. Place has a pool and gym. Non-smoker preferred. Utilities included in rent.',
     photoUrls: [
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80',
-      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80',
-      'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&q=80',
+      '/demo/listings/1.jpg',
+      '/demo/listings/2.jpg',
+      '/demo/listings/3.jpg',
     ],
   },
   {
@@ -106,8 +106,8 @@ export const seedListings: SeedListing[] = [
     commuteArea: 'Samsung Taylor',
     details: 'Sharing a 3BR house with one other tradeswoman. Room available is shared. We\'re both on swing shift at Samsung. House has a big backyard and washer/dryer. Pet-friendly!',
     photoUrls: [
-      'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&q=80',
-      'https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?w=800&q=80',
+      '/demo/listings/4.jpg',
+      '/demo/listings/5.jpg',
     ],
   },
   {
@@ -121,9 +121,9 @@ export const seedListings: SeedListing[] = [
     commuteArea: 'Intel Ohio',
     details: 'Private room in a new townhouse. 10 min from the Intel site. I work nights so the place is quiet during the day. 6-month lease available. Furnished room included.',
     photoUrls: [
-      'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&q=80',
-      'https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=800&q=80',
-      'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80',
+      '/demo/listings/6.jpg',
+      '/demo/listings/1.jpg',
+      '/demo/listings/2.jpg',
     ],
   },
   {
@@ -137,9 +137,9 @@ export const seedListings: SeedListing[] = [
     commuteArea: 'Intel Ocotillo',
     details: 'Entire 1BR apartment available. I\'m relocating for a new project. Lease takeover with option to renew. Great complex with pool, gym, and covered parking. Close to shopping.',
     photoUrls: [
-      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80',
-      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80',
-      'https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=800&q=80',
+      '/demo/listings/3.jpg',
+      '/demo/listings/4.jpg',
+      '/demo/listings/5.jpg',
     ],
   },
   {
@@ -165,7 +165,7 @@ export const seedListings: SeedListing[] = [
     commuteArea: 'Micron Boise',
     details: 'Shared room in a 4BR house with 3 other women. We all work at Micron on different shifts. House is laid back and clean. Big kitchen, backyard with fire pit.',
     photoUrls: [
-      'https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?w=800&q=80',
+      '/demo/listings/6.jpg',
     ],
   },
   {
@@ -179,8 +179,8 @@ export const seedListings: SeedListing[] = [
     commuteArea: 'TSMC Arizona',
     details: 'Affordable shared room near Loop 101. Easy commute to TSMC. House has 4 bedrooms, 2 bathrooms. Looking for someone clean and respectful. Month-to-month available.',
     photoUrls: [
-      'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
-      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&q=80',
+      '/demo/listings/1.jpg',
+      '/demo/listings/2.jpg',
     ],
   },
   {
@@ -194,8 +194,8 @@ export const seedListings: SeedListing[] = [
     commuteArea: 'Intel Ohio',
     details: 'Private room in a nice suburban home. Good schools area. 20 min to Intel Ohio site. Full access to kitchen, living room, and laundry. Looking for a responsible roommate.',
     photoUrls: [
-      'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80',
-      'https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=800&q=80',
+      '/demo/listings/3.jpg',
+      '/demo/listings/4.jpg',
     ],
   },
 ]

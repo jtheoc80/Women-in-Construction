@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Navbar } from '@/components/Navbar'
@@ -155,16 +156,17 @@ export default function HomeClient() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {listings.map((listing, index) => (
-              <div
+              <Link
                 key={listing.id}
-                className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+                href={`/listings/${listing.id}`}
+                className="group block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
               >
                 {/* Photo with 16:9 aspect ratio */}
                 <div className="relative">
                   <ListingCardImage
                     listing={listing}
                     priority={index < 6}
-                    className="bg-slate-100"
+                    className="bg-slate-100 transition-transform duration-500 group-hover:scale-105"
                   />
                   <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
                     {formatRoomType(listing.room_type)}
@@ -177,8 +179,10 @@ export default function HomeClient() {
                 </div>
 
                 {/* Content */}
-                <div className="p-4">
-                  <h3 className="font-semibold text-slate-900">{listing.city}</h3>
+                <div className="p-4 relative bg-white">
+                  <h3 className="font-semibold text-slate-900 group-hover:text-teal-700 transition-colors">
+                    {listing.city}
+                  </h3>
                   {listing.area && (
                     <p className="mt-0.5 text-sm text-slate-500">{listing.area}</p>
                   )}
@@ -204,7 +208,7 @@ export default function HomeClient() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

@@ -16,6 +16,8 @@ export function normalizeListingPhotoUrl(urlOrPath?: string | null): string | nu
   if (!val) return null
   // Already a full URL
   if (val.startsWith('http://') || val.startsWith('https://')) return val
+  // Local path (e.g. /demo/...)
+  if (val.startsWith('/')) return val
   // Storage path - convert to public URL
   if (!SUPABASE_URL) return null
   return `${SUPABASE_URL}/storage/v1/object/public/listing-photos/${val}`
