@@ -4,12 +4,13 @@ import { NextResponse, type NextRequest } from 'next/server'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-// Primary domain for canonical redirects
-const PRIMARY_DOMAIN = 'sitesistersconstruction.com'
+// Primary domain for canonical redirects - configurable via env var
+// Set NEXT_PUBLIC_PRIMARY_DOMAIN to your custom domain to enable canonical redirects
+const PRIMARY_DOMAIN = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'sitesistersconstruction.com'
 
 // Routes that require authentication
 // Protected routes redirect to /signup if not authenticated
-const PROTECTED_ROUTES = ['/account', '/inbox']
+const PROTECTED_ROUTES = ['/account', '/inbox', '/design']
 
 // Routes that should redirect to /browse if already authenticated
 // Note: /sign-up is handled by next.config.js redirect to /signup
@@ -28,6 +29,10 @@ function isAuthRoute(pathname: string): boolean {
   return AUTH_ROUTES.some(route => 
     pathname === route || pathname.startsWith(`${route}/`)
   )
+}
+
+function isApiRoute(pathname: string): boolean {
+  return pathname.startsWith('/api/')
 }
 
 /**
@@ -49,7 +54,7 @@ function isPrefetchRequest(request: NextRequest): boolean {
   return false
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || ''
   const { pathname } = request.nextUrl
   
@@ -66,14 +71,19 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url, { status: 301 })
   }
 
-  // Skip auth redirects for prefetch requests to avoid log spam
-  // But still allow session refresh to happen
-  const isPrefetch = isPrefetchRequest(request)
+  // Skip auth logic for API routes - they handle their own auth
+  if (isApiRoute(pathname)) {
+    return NextResponse.next()
+  }
 
   // Auth callback route handles its own logic - don't interfere
   if (pathname.startsWith(AUTH_CALLBACK_ROUTE)) {
     return NextResponse.next()
   }
+
+  // Skip auth redirects for prefetch requests to avoid log spam
+  // But still allow session refresh to happen
+  const isPrefetch = isPrefetchRequest(request)
 
   let response = NextResponse.next({
     request: {
@@ -109,7 +119,8 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired - required for Server Components
+  // IMPORTANT: Refresh session if expired - required for Server Components
+  // This must be called to refresh the session cookie
   const { data: { user } } = await supabase.auth.getUser()
 
   // Skip redirects for prefetch requests (but session refresh above still runs)

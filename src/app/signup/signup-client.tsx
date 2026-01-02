@@ -189,8 +189,8 @@ export function SignupClient({ next, invite }: SignupClientProps) {
     setMessage(null)
 
     // Build redirect URL for email OTP
-    const base = process.env.NEXT_PUBLIC_SITE_URL || 
-      (typeof window !== 'undefined' ? window.location.origin : '')
+    // Always use window.location.origin to support custom domains
+    const base = typeof window !== 'undefined' ? window.location.origin : ''
     const callbackUrl = new URL('/auth/callback', base)
     callbackUrl.searchParams.set('next', defaultAfterAuth)
     const emailRedirectTo = callbackUrl.toString()

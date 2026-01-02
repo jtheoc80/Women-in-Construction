@@ -12,9 +12,9 @@ import { Mail, Lock, User, Loader2, ArrowRight, Check, RefreshCw } from 'lucide-
 
 /** Build the redirect URL for email verification */
 function getEmailRedirectTo(next: string): string {
-  // Use NEXT_PUBLIC_SITE_URL in production, fallback to window.location.origin in dev
-  const base = process.env.NEXT_PUBLIC_SITE_URL || 
-    (typeof window !== 'undefined' ? window.location.origin : '')
+  // Always use window.location.origin to support custom domains
+  // This ensures the callback URL matches the domain the user is currently on
+  const base = typeof window !== 'undefined' ? window.location.origin : ''
   
   const callbackUrl = new URL('/auth/callback', base)
   callbackUrl.searchParams.set('next', next)
