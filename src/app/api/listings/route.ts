@@ -168,8 +168,11 @@ export async function GET() {
   try {
     const adminClient = createAdminClient()
 
-    // Fetch all active listings with related data
-    // Use explicit foreign key hint (poster_profile_id) for PostgREST to find the relationship
+    // Fetch all active listings.
+    //
+    // NOTE: We intentionally do NOT use PostgREST embedded relationships here (e.g. `poster_profiles(...)`)
+    // because some environments don't have a foreign key constraint between `listings.poster_profile_id`
+    // and `poster_profiles.id` in the schema cache, which causes PGRST200 errors.
     const { data: listings, error } = await adminClient
       .from('listings')
       .select(`
@@ -192,13 +195,7 @@ export async function GET() {
         is_active,
         created_at,
         cover_photo_url,
-        photo_urls,
-        poster_profiles (
-          id,
-          display_name,
-          company,
-          role
-        )
+        photo_urls
       `)
       .eq('is_active', true)
       .order('created_at', { ascending: false })
@@ -211,8 +208,33 @@ export async function GET() {
       )
     }
 
-    // Return empty array if no listings found
-    return NextResponse.json(listings || [])
+    const safeListings = listings || []
+
+    // Hydrate poster_profiles without relying on FK relationships.
+    const posterProfileIds = Array.from(
+      new Set(safeListings.map((l) => l.poster_profile_id).filter(Boolean))
+    )
+
+    let posterProfilesById = new Map<string, { id: string; display_name: string; company: string; role: string | null }>()
+    if (posterProfileIds.length > 0) {
+      const { data: posterProfiles, error: posterProfilesError } = await adminClient
+        .from('poster_profiles')
+        .select('id, display_name, company, role')
+        .in('id', posterProfileIds)
+
+      if (posterProfilesError) {
+        console.error('Error fetching poster profiles:', posterProfilesError)
+      } else if (posterProfiles) {
+        posterProfilesById = new Map(posterProfiles.map((p) => [p.id, p]))
+      }
+    }
+
+    return NextResponse.json(
+      safeListings.map((l) => ({
+        ...l,
+        poster_profiles: l.poster_profile_id ? posterProfilesById.get(l.poster_profile_id) ?? null : null,
+      }))
+    )
   } catch (error) {
     console.error('Unexpected error fetching listings:', error)
     return NextResponse.json(
