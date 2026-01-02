@@ -251,6 +251,7 @@ export async function POST(req: NextRequest) {
     if (listingError || !listingData) {
       console.error('Error creating listing:', listingError)
       // Clean up profile and contact
+      await adminClient.from('profile_contacts').delete().eq('profile_id', profileId)
       await adminClient.from('poster_profiles').delete().eq('id', profileId)
       return NextResponse.json({ ok: false, error: 'Failed to create listing' }, { status: 500 })
     }
