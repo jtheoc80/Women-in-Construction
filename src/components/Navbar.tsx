@@ -15,7 +15,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
-  const { user, profile, loading, signOut } = useAuth()
+  const { user, profile, signOut } = useAuth()
   const pathname = usePathname()
 
   // Avoid useSearchParams here to keep pages pre-renderable.
@@ -51,9 +51,7 @@ export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
             </Button>
           )}
 
-          {loading ? (
-            <div className="h-9 w-20 animate-pulse rounded bg-white/10" />
-          ) : user ? (
+          {user ? (
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="hidden sm:block text-right">
                 <p className="text-sm font-medium text-white">
