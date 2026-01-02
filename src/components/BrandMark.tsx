@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import { SiteSistersMark } from '@/components/SiteSistersMark'
 
 export function BrandMark({
   className,
@@ -11,13 +12,13 @@ export function BrandMark({
   return (
     <span
       className={cn(
-        'inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white ring-1 ring-white/15',
+        'inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 ring-1 ring-white/10',
         className
       )}
       role="img"
       aria-label={label}
     >
-      <span className="text-[11px] font-semibold tracking-tight">SS</span>
+      <SiteSistersMark className="h-7 w-7" />
     </span>
   )
 }
