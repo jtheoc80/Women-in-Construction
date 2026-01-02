@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { 
         ok: true, 
-        uploadBatchId: uploadBatchId, // Return the batch ID for tracking
+        uploadBatchId, // Return the batch ID for tracking
         paths: uploadedPaths,
         ...(errors.length > 0 && { warnings: errors }),
       },
