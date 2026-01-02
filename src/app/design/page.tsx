@@ -638,7 +638,7 @@ export default function DesignPage() {
               <Button
                 onClick={() => setShowReportModal(true)}
                 variant="outline"
-                className="h-12 border-white/20 text-white hover:bg-white/10"
+                className="h-12 border-white/20 bg-transparent text-white hover:bg-white/10"
               >
                 Report
               </Button>
