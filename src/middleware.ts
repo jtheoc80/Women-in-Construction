@@ -27,6 +27,29 @@ function isAuthRoute(pathname: string): boolean {
   )
 }
 
+/**
+ * Detect if a request is a Next.js prefetch or RSC request.
+ * These should NOT trigger auth redirects to avoid log spam and unnecessary 307s.
+ */
+function isPrefetchOrRSCRequest(request: NextRequest): boolean {
+  const headers = request.headers
+  
+  // Next.js Link prefetch header
+  if (headers.get('next-router-prefetch') === '1') return true
+  
+  // Generic prefetch purpose header
+  if (headers.get('purpose') === 'prefetch') return true
+  
+  // Middleware prefetch header
+  if (headers.get('x-middleware-prefetch') === '1') return true
+  
+  // RSC (React Server Components) requests - these have special headers
+  // but should still be allowed through for session refresh
+  // We only skip redirects for prefetch, not all RSC requests
+  
+  return false
+}
+
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || ''
   const { pathname } = request.nextUrl
@@ -42,6 +65,13 @@ export async function middleware(request: NextRequest) {
     url.hostname = PRIMARY_DOMAIN
     url.port = ''
     return NextResponse.redirect(url, { status: 301 })
+  }
+
+  // Skip auth logic entirely for prefetch requests to avoid redirect noise
+  // Prefetch requests should pass through without triggering auth redirects
+  const isPrefetch = isPrefetchOrRSCRequest(request)
+  if (isPrefetch) {
+    return NextResponse.next()
   }
 
   let response = NextResponse.next({
@@ -112,9 +142,9 @@ export const config = {
      * Match all request paths except for the ones starting with:
      * - _next/static (static files)
      * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
+     * - favicon.ico, robots.txt, sitemap.xml (common static files)
+     * - Static asset file extensions
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot)$).*)',
   ],
 }

@@ -73,12 +73,14 @@ export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
                 <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-xl border border-white/10 bg-slate-950 shadow-lg">
                   <Link
                     href="/account"
+                    prefetch={false}
                     className="block px-3 py-2 text-sm text-white/90 hover:bg-white/10"
                   >
                     My profile
                   </Link>
                   <Link
                     href="/inbox"
+                    prefetch={false}
                     className="block px-3 py-2 text-sm text-white/90 hover:bg-white/10"
                   >
                     Inbox

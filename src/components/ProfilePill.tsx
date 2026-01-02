@@ -139,6 +139,7 @@ export function ProfilePill({ profile: legacyProfile, onEditProfile, onGoToListi
             ) : (
               <Link
                 href="/account"
+                prefetch={false}
                 role="menuitem"
                 className="flex min-h-[44px] w-full items-center gap-3 px-4 py-2 text-left text-sm text-white/90 hover:bg-white/10"
                 onClick={() => setOpen(false)}
@@ -166,6 +167,7 @@ export function ProfilePill({ profile: legacyProfile, onEditProfile, onGoToListi
             {!onGoToListings && (
               <Link
                 href="/inbox"
+                prefetch={false}
                 role="menuitem"
                 className="flex min-h-[44px] w-full items-center gap-3 px-4 py-2 text-left text-sm text-white/90 hover:bg-white/10"
                 onClick={() => setOpen(false)}
