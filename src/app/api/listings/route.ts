@@ -69,14 +69,6 @@ async function checkRateLimit(
 }
 
 // Input validation types
-interface ProfileInput {
-  displayName: string
-  company: string
-  role?: string
-  contactPreference: string
-  contactValue: string
-}
-
 interface ListingInput {
   title?: string
   city: string
@@ -91,11 +83,10 @@ interface ListingInput {
   placeId?: string
   lat?: number
   lng?: number
-  fullAddress?: string
 }
 
 interface CreateListingRequest {
-  profile: ProfileInput
+  profile?: unknown // Legacy field, ignored
   listing: ListingInput
   photoPaths?: string[]
   website?: string // honeypot
@@ -120,23 +111,6 @@ function validateRequest(body: unknown): { valid: true; data: CreateListingReque
   // Check honeypot - if filled, it's likely a bot
   if (req.website && req.website.trim() !== '') {
     return { valid: false, error: 'Invalid request' }
-  }
-
-  // Validate profile
-  if (!req.profile || typeof req.profile !== 'object') {
-    return { valid: false, error: 'Profile information is required' }
-  }
-  if (!req.profile.displayName || req.profile.displayName.trim() === '') {
-    return { valid: false, error: 'Display name is required' }
-  }
-  if (!req.profile.company || req.profile.company.trim() === '') {
-    return { valid: false, error: 'Company is required' }
-  }
-  if (!req.profile.contactPreference || !['email', 'phone', 'instagram', 'other'].includes(req.profile.contactPreference)) {
-    return { valid: false, error: 'Valid contact preference is required (email, phone, instagram, other)' }
-  }
-  if (!req.profile.contactValue || req.profile.contactValue.trim() === '') {
-    return { valid: false, error: 'Contact value is required' }
   }
 
   // Validate listing
@@ -185,13 +159,13 @@ export async function GET() {
       return NextResponse.json([])
     }
 
-    // First, try to fetch with poster_profiles join
+    // Fetch listings with profile info
+    // Try to join with profiles table (for authenticated user display names)
     const { data: listings, error } = await adminClient
       .from('listings')
       .select(`
         id,
         user_id,
-        poster_profile_id,
         title,
         city,
         area,
@@ -209,27 +183,25 @@ export async function GET() {
         created_at,
         cover_photo_url,
         photo_urls,
-        poster_profiles!poster_profile_id (
+        profiles:user_id (
           id,
           display_name,
-          company,
-          role
+          first_name
         )
       `)
       .eq('is_active', true)
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('[Listings GET] Error fetching listings with join:', error.message)
+      console.error('[Listings GET] Error fetching listings with profile join:', error.message)
       
       // Fallback: try without the join if it failed
-      console.log('[Listings GET] Attempting fallback query without poster_profiles join...')
+      console.log('[Listings GET] Attempting fallback query without profiles join...')
       const { data: fallbackListings, error: fallbackError } = await adminClient
         .from('listings')
         .select(`
           id,
           user_id,
-          poster_profile_id,
           title,
           city,
           area,
@@ -370,7 +342,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: validation.error }, { status: 400 })
     }
 
-    const { profile, listing, photoPaths } = validation.data
+    const { listing, photoPaths } = validation.data
     const allPhotoUrls = (photoPaths || [])
       .map(toPublicListingPhotoUrl)
       .filter(Boolean)
@@ -378,49 +350,14 @@ export async function POST(req: NextRequest) {
     const photoUrls = allPhotoUrls.length > 1 ? allPhotoUrls.slice(1) : null
 
     // ========================================
-    // 5. CREATE POSTER PROFILE (for display purposes)
+    // 5. CREATE LISTING (with user_id for ownership)
     // ========================================
-    const { data: profileData, error: profileError } = await adminClient
-      .from('poster_profiles')
-      .insert({
-        display_name: profile.displayName.trim(),
-        company: profile.company.trim(),
-        role: profile.role?.trim() || null,
-      })
-      .select('id')
-      .single()
-
-    if (profileError || !profileData) {
-      console.error('Error creating profile:', profileError)
-      return NextResponse.json({ ok: false, error: 'Failed to create profile' }, { status: 500 })
-    }
-
-    const posterProfileId = profileData.id
-
-    // ========================================
-    // 6. CREATE PROFILE CONTACT (private)
-    // ========================================
-    const { error: contactError } = await adminClient.from('profile_contacts').insert({
-      profile_id: posterProfileId,
-      contact_preference: profile.contactPreference,
-      contact_value: profile.contactValue.trim(),
-    })
-
-    if (contactError) {
-      console.error('Error creating contact:', contactError)
-      // Clean up profile
-      await adminClient.from('poster_profiles').delete().eq('id', posterProfileId)
-      return NextResponse.json({ ok: false, error: 'Failed to save contact information' }, { status: 500 })
-    }
-
-    // ========================================
-    // 7. CREATE LISTING (with user_id for ownership)
-    // ========================================
+    console.log('[Listings POST] Creating listing for user:', user.id)
+    
     const { data: listingData, error: listingError } = await adminClient
       .from('listings')
       .insert({
         user_id: user.id, // Associate with authenticated user for ownership
-        poster_profile_id: posterProfileId,
         title: listing.title?.trim() || null,
         city: listing.city.trim(),
         area: listing.area?.trim() || null,
@@ -434,7 +371,6 @@ export async function POST(req: NextRequest) {
         place_id: listing.placeId || null,
         lat: listing.lat || null,
         lng: listing.lng || null,
-        full_address: listing.fullAddress?.trim() || null, // Store full address privately
         cover_photo_url: coverPhotoUrl,
         photo_urls: photoUrls,
         is_active: true,
@@ -443,10 +379,7 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (listingError || !listingData) {
-      console.error('Error creating listing:', listingError)
-      // Clean up profile and contact
-      await adminClient.from('profile_contacts').delete().eq('profile_id', posterProfileId)
-      await adminClient.from('poster_profiles').delete().eq('id', posterProfileId)
+      console.error('[Listings POST] Error creating listing:', listingError)
       return NextResponse.json({ ok: false, error: 'Failed to create listing' }, { status: 500 })
     }
 

@@ -1,5 +1,6 @@
 -- Migration: Ensure listings RLS allows anonymous read access
 -- This migration ensures that anonymous users can read listings for the public browse feature.
+-- Note: poster_profiles table is NOT used - listings are linked directly to profiles via user_id
 
 -- ============================================================
 -- 1) ENSURE RLS IS ENABLED ON LISTINGS TABLE
@@ -7,16 +8,17 @@
 ALTER TABLE public.listings ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
--- 2) DROP AND RECREATE POLICIES FOR CLARITY
+-- 2) DROP AND RECREATE POLICIES
 -- ============================================================
 
--- Drop existing policies to recreate them with correct configuration
 DROP POLICY IF EXISTS "Anyone can view active listings" ON public.listings;
 DROP POLICY IF EXISTS "Users can view own listings" ON public.listings;
 DROP POLICY IF EXISTS "Anon can view active listings" ON public.listings;
+DROP POLICY IF EXISTS "Authenticated can view active listings" ON public.listings;
 DROP POLICY IF EXISTS "Users can insert listings" ON public.listings;
 DROP POLICY IF EXISTS "Users can update own listings" ON public.listings;
 DROP POLICY IF EXISTS "Users can delete own listings" ON public.listings;
+DROP POLICY IF EXISTS "Authenticated users can create listings" ON public.listings;
 
 -- ============================================================
 -- 3) CREATE SELECT POLICIES
@@ -41,60 +43,32 @@ CREATE POLICY "Users can view own listings"
   ON public.listings
   FOR SELECT
   TO authenticated
-  USING (user_id IS NOT NULL AND user_id = auth.uid()::text);
+  USING (user_id IS NOT NULL AND user_id = auth.uid());
 
 -- ============================================================
--- 4) CREATE INSERT/UPDATE/DELETE POLICIES FOR AUTHENTICATED USERS
+-- 4) CREATE INSERT/UPDATE/DELETE POLICIES
 -- ============================================================
 
--- Users can insert listings (user_id will be set by API route)
 CREATE POLICY "Users can insert listings"
   ON public.listings
   FOR INSERT
   TO authenticated
-  WITH CHECK (user_id IS NULL OR user_id = auth.uid()::text);
+  WITH CHECK (user_id IS NULL OR user_id = auth.uid());
 
--- Users can update their own listings
 CREATE POLICY "Users can update own listings"
   ON public.listings
   FOR UPDATE
   TO authenticated
-  USING (user_id = auth.uid()::text);
+  USING (user_id = auth.uid());
 
--- Users can delete their own listings
 CREATE POLICY "Users can delete own listings"
   ON public.listings
   FOR DELETE
   TO authenticated
-  USING (user_id = auth.uid()::text);
+  USING (user_id = auth.uid());
 
 -- ============================================================
--- 5) ENSURE POSTER_PROFILES IS READABLE BY ANON
--- ============================================================
--- (This should already exist from migration 006, but ensure it's there)
-
--- First check if policy exists, drop if it does
-DROP POLICY IF EXISTS "Anon can read poster profiles" ON public.poster_profiles;
-DROP POLICY IF EXISTS "Authenticated can read poster profiles" ON public.poster_profiles;
-
--- Anon can read poster profiles (public info)
-CREATE POLICY "Anon can read poster profiles"
-  ON public.poster_profiles
-  FOR SELECT
-  TO anon
-  USING (true);
-
--- Authenticated can read poster profiles
-CREATE POLICY "Authenticated can read poster profiles"
-  ON public.poster_profiles
-  FOR SELECT
-  TO authenticated
-  USING (true);
-
--- ============================================================
--- 6) GRANT NECESSARY PERMISSIONS
+-- 5) GRANT PERMISSIONS
 -- ============================================================
 GRANT SELECT ON public.listings TO anon;
-GRANT SELECT ON public.poster_profiles TO anon;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.listings TO authenticated;
-GRANT SELECT ON public.poster_profiles TO authenticated;

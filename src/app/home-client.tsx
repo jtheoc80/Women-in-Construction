@@ -7,17 +7,15 @@ import { useGatedAction } from '@/contexts/AuthContext'
 import { PostListingModal } from '@/components/PostListingModal'
 import { MapPin, Target, Loader2 } from 'lucide-react'
 
-interface PosterProfile {
+interface Profile {
   id: string
-  display_name: string
-  company: string
-  role: string | null
+  display_name: string | null
+  first_name: string | null
 }
 
 interface Listing {
   id: string
   user_id: string
-  poster_profile_id: string | null
   title: string | null
   city: string
   area: string | null
@@ -33,12 +31,9 @@ interface Listing {
   lng: number | null
   is_active: boolean
   created_at: string
-  full_address?: string | null
-  is_owner?: boolean
-  poster_profiles?: PosterProfile | null
   cover_photo_url?: string | null
   photo_urls?: string[] | null
-  profiles?: { display_name: string }
+  profiles?: Profile | null
 }
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -61,11 +56,7 @@ function getListingHeroImageUrl(listing: Listing): string | null {
 }
 
 function getDisplayName(listing: Listing): string {
-  return listing.poster_profiles?.display_name || listing.profiles?.display_name || 'Anonymous'
-}
-
-function getCompany(listing: Listing): string | null {
-  return listing.poster_profiles?.company || null
+  return listing.profiles?.display_name || listing.profiles?.first_name || 'Member'
 }
 
 function formatRoomType(type: string): string {
@@ -228,9 +219,6 @@ export default function HomeClient() {
                   <div className="mt-3 border-t border-slate-100 pt-3">
                     <p className="text-xs text-slate-400">
                       Posted by {getDisplayName(listing)}
-                      {getCompany(listing) && (
-                        <span className="text-slate-500"> • {getCompany(listing)}</span>
-                      )}
                     </p>
                   </div>
                 </div>
