@@ -1,8 +1,8 @@
-import { redirect } from 'next/navigation'
+import HomeClient from './home-client'
 
 /**
- * Home page redirects to /browse which contains the SiteSisters marketplace UI.
+ * Home page - the main landing page for SiteSisters.
  */
 export default function Home() {
-  redirect('/browse')
+  return <HomeClient />
 }
