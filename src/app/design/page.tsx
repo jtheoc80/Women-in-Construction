@@ -1,18 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { BrandMark } from '@/components/BrandMark'
+import { useState, useEffect, useRef } from 'react'
+import { SiteLogo, SiteLogoMark } from '@/components/SiteLogo'
 import { Button } from '@/components/ui/button'
-import { ProfilePill } from '@/components/ProfilePill'
-import { BottomSheet, SlideOver } from '@/components/BottomSheet'
-import { PostListingModal } from '@/components/PostListingModal'
-import { useAuth, useGatedAction } from '@/contexts/AuthContext'
-import { 
-  MapPin, Target, ChevronLeft, ChevronRight, 
-  Filter, Building2, Lock, Loader2 
-} from 'lucide-react'
+import { AddressAutocomplete, type AddressResult } from '@/components/AddressAutocomplete'
+import { ProfileModal } from '@/components/ProfileModal'
+import { ProfilePill, type LocalProfile } from '@/components/ProfilePill'
+import { MapPin, Target, X, ChevronLeft, ChevronRight, Upload, Loader2, Building2, Lock } from 'lucide-react'
+import { useGatedAction, useAuth } from '@/contexts/AuthContext'
 
-// Types
+// Types based on database schema
 interface PosterProfile {
   id: string
   display_name: string
@@ -304,8 +301,8 @@ export default function DesignPage() {
       <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/95 px-4 py-3 backdrop-blur-lg sm:py-4">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <a href="/design" className="flex items-center gap-2">
-            <BrandMark />
-            <span className="text-lg font-bold tracking-tight text-white sm:text-2xl">
+            <SiteLogo />
+            <span className="text-xl font-bold tracking-tight text-white sm:text-2xl">
               SiteSisters
             </span>
           </a>
@@ -318,8 +315,36 @@ export default function DesignPage() {
               <span className="hidden sm:inline">+ Post Listing</span>
               <span className="sm:hidden">+ Post</span>
             </Button>
-            
-            <ProfilePill />
+
+            {localProfile ? (
+              <ProfilePill
+                profile={localProfile}
+                onEditProfile={() => setShowProfileModal(true)}
+                onGoToListings={scrollToListings}
+                onSafety={() =>
+                  showToastMessage('Safety: use “Report” on any listing; full addresses stay private by default.')
+                }
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowProfileModal(true)}
+                className="inline-flex h-11 items-center gap-3 rounded-2xl bg-white/10 px-3 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
+                  <SiteLogoMark className="h-5 w-5" />
+                </span>
+                <span className="hidden flex-col text-left sm:flex">
+                  <span className="text-sm font-semibold leading-tight text-white">
+                    Create profile
+                  </span>
+                  <span className="text-xs text-white/70">Add your name + company</span>
+                </span>
+                <span className="ml-0.5 text-xs text-white/80" aria-hidden="true">
+                  ▼
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </header>

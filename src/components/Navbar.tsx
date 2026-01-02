@@ -3,7 +3,7 @@
 import React from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
-import { BrandMark } from '@/components/BrandMark'
+import { SiteLogo } from '@/components/SiteLogo'
 import { InviteDialog } from '@/components/InviteDialog'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -34,7 +34,7 @@ export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
     <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950 px-4 py-4 text-white/90">
       <div className="mx-auto flex max-w-6xl items-center justify-between">
         <a href="/design" className="flex items-center gap-2">
-          <BrandMark />
+          <SiteLogo />
           <span className="text-xl font-bold tracking-tight text-white sm:text-2xl">
             SiteSisters
           </span>

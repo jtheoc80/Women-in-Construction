@@ -1,10 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import Link from 'next/link'
-import { useAuth } from '@/contexts/AuthContext'
-import { ChevronDown, User, Inbox, LogOut, Settings, Link2 } from 'lucide-react'
-import { InviteDialog } from '@/components/InviteDialog'
+import { SiteLogoMark } from '@/components/SiteLogo'
 
 // Legacy type for localStorage profiles (being removed)
 export type LocalProfile = {
@@ -84,9 +81,8 @@ export function ProfilePill() {
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        {/* Avatar */}
-        <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-teal-600 text-sm font-semibold text-white ring-1 ring-white/20">
-          {initials}
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
+          <SiteLogoMark className="h-5 w-5" />
         </span>
 
         {/* Name - hidden on very small screens, single line on mobile */}
