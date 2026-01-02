@@ -89,6 +89,11 @@ ALTER TABLE public.listings
 ALTER TABLE public.listings 
   ADD COLUMN IF NOT EXISTS poster_profile_id uuid REFERENCES public.poster_profiles(id) ON DELETE SET NULL;
 
+-- Add CHECK constraint to ensure at least one of user_id or poster_profile_id is not null
+ALTER TABLE public.listings 
+  ADD CONSTRAINT listings_require_user_or_profile 
+  CHECK (user_id IS NOT NULL OR poster_profile_id IS NOT NULL);
+
 -- Add Google Places fields
 ALTER TABLE public.listings 
   ADD COLUMN IF NOT EXISTS place_id text,
