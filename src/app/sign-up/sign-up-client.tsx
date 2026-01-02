@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,12 +25,15 @@ function getEmailRedirectTo(next: string): string {
 /** Resend cooldown in seconds */
 const RESEND_COOLDOWN_SECONDS = 30
 
-export function SignUpClient() {
+interface SignUpClientProps {
+  next: string | null
+}
+
+export function SignUpClient({ next: nextProp }: SignUpClientProps) {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const supabase = getSupabaseBrowserClient()
 
-  const next = searchParams.get('next') || '/browse'
+  const next = nextProp || '/browse'
   const safeNext = next.startsWith('/') ? next : '/browse'
 
   const [email, setEmail] = useState('')
