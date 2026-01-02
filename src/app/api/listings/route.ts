@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { createServerClient } from '@supabase/ssr'
+import { DEMO_LISTINGS } from '@/lib/demo-data'
 
 // Configuration
 const RATE_LIMIT_BUCKET = 'post_listing'
@@ -172,8 +173,8 @@ export async function GET() {
   try {
     // Check if Supabase is configured
     if (!supabaseUrl) {
-      console.log('[Listings GET] Supabase not configured, returning empty array')
-      return NextResponse.json([])
+      console.log('[Listings GET] Supabase not configured, returning demo listings')
+      return NextResponse.json(DEMO_LISTINGS.map(l => ({ ...l, is_demo: true })))
     }
 
     let adminClient
@@ -181,8 +182,8 @@ export async function GET() {
       adminClient = createAdminClient()
     } catch (clientError) {
       console.error('[Listings GET] Failed to create admin client:', clientError)
-      // Return empty array instead of error for graceful degradation
-      return NextResponse.json([])
+      console.log('[Listings GET] Returning demo listings due to client creation failure')
+      return NextResponse.json(DEMO_LISTINGS.map(l => ({ ...l, is_demo: true })))
     }
 
     // First, try to fetch with poster_profiles join
@@ -253,24 +254,30 @@ export async function GET() {
 
       if (fallbackError) {
         console.error('[Listings GET] Fallback query also failed:', fallbackError.message)
-        return NextResponse.json(
-          { ok: false, error: 'Failed to fetch listings' },
-          { status: 500 }
-        )
+        console.log('[Listings GET] Returning demo listings due to query failure')
+        return NextResponse.json(DEMO_LISTINGS.map(l => ({ ...l, is_demo: true })))
       }
 
       console.log(`[Listings GET] Fallback success: ${fallbackListings?.length || 0} listings`)
-      return NextResponse.json(fallbackListings || [])
+      if (!fallbackListings || fallbackListings.length === 0) {
+        console.log('[Listings GET] No listings found (fallback), returning demo listings')
+        return NextResponse.json(DEMO_LISTINGS.map(l => ({ ...l, is_demo: true })))
+      }
+      return NextResponse.json(fallbackListings)
     }
 
     console.log(`[Listings GET] Success: ${listings?.length || 0} listings`)
-    return NextResponse.json(listings || [])
+    
+    if (!listings || listings.length === 0) {
+      console.log('[Listings GET] No listings found, returning demo listings')
+      return NextResponse.json(DEMO_LISTINGS.map(l => ({ ...l, is_demo: true })))
+    }
+
+    return NextResponse.json(listings)
   } catch (error) {
     console.error('[Listings GET] Unexpected error:', error)
-    return NextResponse.json(
-      { ok: false, error: 'Failed to fetch listings' },
-      { status: 500 }
-    )
+    console.log('[Listings GET] Returning demo listings due to unexpected error')
+    return NextResponse.json(DEMO_LISTINGS.map(l => ({ ...l, is_demo: true })))
   }
 }
 
