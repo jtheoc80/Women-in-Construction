@@ -433,11 +433,11 @@ function PhotoUploader({
 }) {
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const fileInputRef = useCallback((node: HTMLInputElement | null) => {
+  const fileInputRef = (node: HTMLInputElement | null) => {
     if (node) {
       node.value = ''
     }
-  }, [])
+  }
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
