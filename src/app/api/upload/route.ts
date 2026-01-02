@@ -2,14 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { createServerClient } from '@supabase/ssr'
 import { nanoid } from 'nanoid'
+import sharp from 'sharp'
 
 // Configuration
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-const MAX_FILE_SIZE = 6 * 1024 * 1024 // 6MB
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB (before conversion)
 const MAX_FILES = 6
 const RATE_LIMIT_BUCKET = 'upload'
 const RATE_LIMIT_WINDOW = 3600 // 1 hour in seconds
 const RATE_LIMIT_MAX = 40 // max 40 uploads per hour per IP
+
+// WebP conversion settings for optimal quality/size balance
+const WEBP_OPTIONS = {
+  quality: 85,
+  effort: 4, // 0-6, higher = smaller file but slower
+}
+
+// Maximum image dimensions (will resize if larger)
+const MAX_IMAGE_WIDTH = 2048
+const MAX_IMAGE_HEIGHT = 2048
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
@@ -71,18 +82,22 @@ async function checkRateLimit(adminClient: ReturnType<typeof createAdminClient>,
   return { allowed: true, remaining: RATE_LIMIT_MAX - 1 }
 }
 
-// Get file extension from mime type
-function getExtension(mimeType: string): string {
-  switch (mimeType) {
-    case 'image/jpeg':
-      return 'jpg'
-    case 'image/png':
-      return 'png'
-    case 'image/webp':
-      return 'webp'
-    default:
-      return 'jpg'
-  }
+/**
+ * Convert image buffer to optimized WebP
+ * - Resize if too large
+ * - Strip metadata
+ * - Convert to WebP format
+ */
+async function convertToWebP(buffer: ArrayBuffer): Promise<Buffer> {
+  const sharpInstance = sharp(Buffer.from(buffer))
+    .rotate() // Auto-rotate based on EXIF
+    .resize(MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT, {
+      fit: 'inside',
+      withoutEnlargement: true, // Don't upscale smaller images
+    })
+    .webp(WEBP_OPTIONS)
+  
+  return sharpInstance.toBuffer()
 }
 
 /**
@@ -156,7 +171,9 @@ export async function POST(req: NextRequest) {
     const uploadedPaths: string[] = []
     const errors: string[] = []
 
-    for (const file of files) {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      
       if (!(file instanceof File)) {
         errors.push('Invalid file in request')
         continue
@@ -170,34 +187,45 @@ export async function POST(req: NextRequest) {
 
       // Validate file size
       if (file.size > MAX_FILE_SIZE) {
-        errors.push(`File too large: ${file.name}. Maximum size: 6MB`)
+        errors.push(`File too large: ${file.name}. Maximum size: 10MB`)
         continue
       }
 
-      // Generate unique filename
-      // Path format: {userId}/{batchId}/{filename} for organization
-      const ext = getExtension(file.type)
-      const fileName = `${nanoid(16)}.${ext}`
-      const storagePath = `${user.id}/${batchId}/${fileName}`
+      try {
+        // Read file buffer
+        const originalBuffer = await file.arrayBuffer()
 
-      // Read file buffer
-      const buffer = await file.arrayBuffer()
+        // Convert to optimized WebP
+        console.log(`[Upload] Converting ${file.name} to WebP...`)
+        const webpBuffer = await convertToWebP(originalBuffer)
+        
+        // Generate deterministic filename with webp extension
+        // Path format: {userId}/{batchId}/img_{index}.webp
+        const fileName = `img_${i}.webp`
+        const storagePath = `${user.id}/${batchId}/${fileName}`
 
-      // Upload to Supabase Storage
-      const { error: uploadError } = await adminClient.storage
-        .from('listing-photos')
-        .upload(storagePath, buffer, {
-          contentType: file.type,
-          upsert: false,
-        })
+        console.log(`[Upload] Converted ${file.name}: ${file.size} -> ${webpBuffer.length} bytes (${Math.round((1 - webpBuffer.length / file.size) * 100)}% reduction)`)
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError)
-        errors.push(`Failed to upload: ${file.name}`)
+        // Upload to Supabase Storage
+        const { error: uploadError } = await adminClient.storage
+          .from('listing-photos')
+          .upload(storagePath, webpBuffer, {
+            contentType: 'image/webp',
+            upsert: false,
+          })
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError)
+          errors.push(`Failed to upload: ${file.name}`)
+          continue
+        }
+
+        uploadedPaths.push(storagePath)
+      } catch (conversionError) {
+        console.error('Image conversion error:', conversionError)
+        errors.push(`Failed to process: ${file.name}`)
         continue
       }
-
-      uploadedPaths.push(storagePath)
     }
 
     if (uploadedPaths.length === 0) {

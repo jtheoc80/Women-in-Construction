@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Navbar } from '@/components/Navbar'
 import { useGatedAction } from '@/contexts/AuthContext'
 import { PostListingModal } from '@/components/PostListingModal'
+import { ListingCardImage } from '@/components/ListingImage'
 import { MapPin, Target, Loader2 } from 'lucide-react'
 
 interface PosterProfile {
@@ -39,25 +40,6 @@ interface Listing {
   cover_photo_url?: string | null
   photo_urls?: string[] | null
   profiles?: { display_name: string }
-}
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-
-function normalizeListingPhotoUrl(urlOrPath?: string | null): string | null {
-  if (!urlOrPath) return null
-  const val = urlOrPath.trim()
-  if (!val) return null
-  if (val.startsWith('http://') || val.startsWith('https://')) return val
-  if (!SUPABASE_URL) return val
-  return `${SUPABASE_URL}/storage/v1/object/public/listing-photos/${val}`
-}
-
-function getListingHeroImageUrl(listing: Listing): string | null {
-  return (
-    normalizeListingPhotoUrl(listing.cover_photo_url) ??
-    normalizeListingPhotoUrl(listing.photo_urls?.[0]) ??
-    null
-  )
 }
 
 function getDisplayName(listing: Listing): string {
@@ -182,25 +164,18 @@ export default function HomeClient() {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-            {listings.map((listing) => (
+            {listings.map((listing, index) => (
               <div
                 key={listing.id}
                 className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
               >
-                {/* Photo */}
-                <div className="relative h-40 bg-slate-100 sm:h-44">
-                  {getListingHeroImageUrl(listing) ? (
-                    <img
-                      src={getListingHeroImageUrl(listing)!}
-                      alt={listing.area || listing.city}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-700 to-slate-600">
-                      <span className="text-sm font-medium text-white/80">Photo coming soon</span>
-                    </div>
-                  )}
+                {/* Photo with 16:9 aspect ratio */}
+                <div className="relative">
+                  <ListingCardImage
+                    listing={listing}
+                    priority={index < 6}
+                    className="bg-slate-100"
+                  />
                   <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
                     {formatRoomType(listing.room_type)}
                   </span>
