@@ -68,6 +68,9 @@ export function AccountProfileForm({ initialProfile }: { initialProfile: Profile
       if (onboarding && complete && nextParam) {
         router.replace(nextParam)
       }
+    } catch (err) {
+      console.error('Error saving profile:', err)
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setSaving(false)
     }
