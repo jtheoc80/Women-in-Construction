@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -8,7 +8,22 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { SiteLogo } from '@/components/SiteLogo'
-import { Mail, Lock, Loader2, ArrowRight } from 'lucide-react'
+import { Mail, Lock, Loader2, ArrowRight, RefreshCw } from 'lucide-react'
+
+/** Build the redirect URL for email verification */
+function getEmailRedirectTo(next: string): string {
+  // Use NEXT_PUBLIC_SITE_URL in production, fallback to window.location.origin in dev
+  const base = process.env.NEXT_PUBLIC_SITE_URL || 
+    (typeof window !== 'undefined' ? window.location.origin : '')
+  
+  const callbackUrl = new URL('/auth/callback', base)
+  callbackUrl.searchParams.set('next', next)
+  
+  return callbackUrl.toString()
+}
+
+/** Resend cooldown in seconds */
+const RESEND_COOLDOWN_SECONDS = 30
 
 export function SignInClient() {
   const router = useRouter()
@@ -17,28 +32,62 @@ export function SignInClient() {
 
   const next = searchParams.get('next') || '/design'
   const safeNext = next.startsWith('/') ? next : '/design'
+  
+  // Check for error from auth callback
+  const callbackError = searchParams.get('error')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(callbackError)
   const [mode, setMode] = useState<'password' | 'magic'>('password')
   const [magicLinkSent, setMagicLinkSent] = useState(false)
+  
+  // Resend cooldown state
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendMessage, setResendMessage] = useState<string | null>(null)
+
+  // Cooldown timer effect
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    
+    const timer = setInterval(() => {
+      setResendCooldown(prev => Math.max(0, prev - 1))
+    }, 1000)
+    
+    return () => clearInterval(timer)
+  }, [resendCooldown])
 
   const handleSignInWithPassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
+    // Debug logging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[SignIn] Attempting password sign-in:', { email: email.trim() })
+    }
+
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       })
 
+      // Debug logging in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[SignIn] Password sign-in response:', {
+          success: !!data?.session,
+          error: signInError?.message,
+        })
+      }
+
       if (signInError) {
         if (signInError.message.includes('Invalid login credentials')) {
           setError('Invalid email or password. Please try again or sign up for a new account.')
+        } else if (signInError.message.includes('Email not confirmed')) {
+          setError('Please check your email and click the verification link to confirm your account.')
         } else {
           setError(signInError.message)
         }
@@ -47,6 +96,9 @@ export function SignInClient() {
 
       router.push(safeNext)
       router.refresh()
+    } catch (err) {
+      console.error('[SignIn] Unexpected error:', err)
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -57,20 +109,46 @@ export function SignInClient() {
     setLoading(true)
     setError(null)
 
+    const emailRedirectTo = getEmailRedirectTo(safeNext)
+
+    // Debug logging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[SignIn] Sending magic link:', {
+        email: email.trim(),
+        emailRedirectTo,
+      })
+    }
+
     try {
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
-          emailRedirectTo: `${window.location.origin}${safeNext}`,
+          emailRedirectTo,
         },
       })
 
+      // Debug logging in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[SignIn] Magic link response:', {
+          error: otpError?.message,
+          errorCode: otpError?.status,
+        })
+      }
+
       if (otpError) {
-        setError(otpError.message)
+        if (otpError.message.includes('redirect')) {
+          setError(`Email delivery failed: ${otpError.message}. Please contact support if this persists.`)
+        } else {
+          setError(otpError.message)
+        }
         return
       }
 
       setMagicLinkSent(true)
+      setResendCooldown(RESEND_COOLDOWN_SECONDS)
+    } catch (err) {
+      console.error('[SignIn] Magic link error:', err)
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -85,21 +163,93 @@ export function SignInClient() {
     setLoading(true)
     setError(null)
 
+    const emailRedirectTo = getEmailRedirectTo('/sign-in')
+
+    // Debug logging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[SignIn] Sending password reset:', {
+        email: email.trim(),
+        emailRedirectTo,
+      })
+    }
+
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/sign-in`,
+        redirectTo: emailRedirectTo,
       })
 
+      // Debug logging in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[SignIn] Password reset response:', {
+          error: resetError?.message,
+        })
+      }
+
       if (resetError) {
-        setError(resetError.message)
+        if (resetError.message.includes('redirect')) {
+          setError(`Email delivery failed: ${resetError.message}. Please contact support if this persists.`)
+        } else {
+          setError(resetError.message)
+        }
         return
       }
 
       setMagicLinkSent(true)
+      setResendCooldown(RESEND_COOLDOWN_SECONDS)
+    } catch (err) {
+      console.error('[SignIn] Password reset error:', err)
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
   }
+
+  const handleResendMagicLink = useCallback(async () => {
+    if (resendCooldown > 0 || resendLoading) return
+    
+    setResendLoading(true)
+    setResendMessage(null)
+    setError(null)
+
+    const emailRedirectTo = getEmailRedirectTo(safeNext)
+
+    // Debug logging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[SignIn] Resending magic link:', {
+        email: email.trim(),
+        emailRedirectTo,
+      })
+    }
+
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          emailRedirectTo,
+        },
+      })
+
+      // Debug logging in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[SignIn] Resend response:', {
+          error: otpError?.message,
+        })
+      }
+
+      if (otpError) {
+        setError(otpError.message)
+        return
+      }
+
+      setResendMessage('Magic link resent! Check your inbox.')
+      setResendCooldown(RESEND_COOLDOWN_SECONDS)
+    } catch (err) {
+      console.error('[SignIn] Resend error:', err)
+      setError('Failed to resend email. Please try again.')
+    } finally {
+      setResendLoading(false)
+    }
+  }, [email, safeNext, resendCooldown, resendLoading, supabase.auth])
 
   if (magicLinkSent) {
     return (
@@ -123,15 +273,63 @@ export function SignInClient() {
                 We sent a link to <span className="font-medium text-white">{email}</span>. 
                 Click the link in your email to continue.
               </p>
-              <button
-                onClick={() => {
-                  setMagicLinkSent(false)
-                  setEmail('')
-                }}
-                className="mt-6 min-h-[44px] rounded-xl px-4 text-sm font-medium text-teal-400 hover:text-teal-300"
-              >
-                Use a different email
-              </button>
+              
+              {/* Resend section */}
+              <div className="mt-6 space-y-3">
+                {/* Success/Error messages */}
+                {resendMessage && (
+                  <div className="rounded-lg bg-teal-500/10 p-3 text-sm text-teal-400">
+                    {resendMessage}
+                  </div>
+                )}
+                {error && (
+                  <div className="rounded-lg bg-red-500/10 p-3 text-sm text-red-400">
+                    {error}
+                  </div>
+                )}
+                
+                {/* Resend button */}
+                <button
+                  onClick={handleResendMagicLink}
+                  disabled={resendCooldown > 0 || resendLoading}
+                  className="inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 text-sm font-medium text-teal-400 hover:text-teal-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {resendLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : resendCooldown > 0 ? (
+                    <>
+                      <RefreshCw className="h-4 w-4" />
+                      Resend in {resendCooldown}s
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4" />
+                      Resend email
+                    </>
+                  )}
+                </button>
+                
+                <div className="border-t border-white/10 pt-3">
+                  <button
+                    onClick={() => {
+                      setMagicLinkSent(false)
+                      setEmail('')
+                      setError(null)
+                      setResendMessage(null)
+                    }}
+                    className="min-h-[44px] rounded-xl px-4 text-sm font-medium text-white/60 hover:text-white/90"
+                  >
+                    Use a different email
+                  </button>
+                </div>
+                
+                <p className="text-xs text-white/50">
+                  Didn&apos;t receive the email? Check your spam folder.
+                </p>
+              </div>
             </div>
           </div>
         </div>

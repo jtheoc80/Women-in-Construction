@@ -15,6 +15,9 @@ const PROTECTED_ROUTES = ['/app', '/account', '/inbox', '/browse']
 // Routes that should redirect to /design if already authenticated
 const AUTH_ROUTES = ['/sign-in', '/sign-up', '/signup']
 
+// Auth callback route - should never be redirected
+const AUTH_CALLBACK_ROUTE = '/auth/callback'
+
 function isProtectedRoute(pathname: string): boolean {
   return PROTECTED_ROUTES.some(route => 
     pathname === route || pathname.startsWith(`${route}/`)
@@ -71,6 +74,11 @@ export async function middleware(request: NextRequest) {
   // Prefetch requests should pass through without triggering auth redirects
   const isPrefetch = isPrefetchOrRSCRequest(request)
   if (isPrefetch) {
+    return NextResponse.next()
+  }
+
+  // Auth callback route handles its own logic - don't interfere
+  if (pathname.startsWith(AUTH_CALLBACK_ROUTE)) {
     return NextResponse.next()
   }
 
