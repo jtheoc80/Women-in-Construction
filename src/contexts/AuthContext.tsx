@@ -94,6 +94,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase, router])
 
   useEffect(() => {
+    // Safety timeout to ensure loading state doesn't stay true forever
+    const loadingTimeout = setTimeout(() => {
+      setLoading(false)
+    }, 5000)
+
     // Get initial session
     const initializeAuth = async () => {
       try {
@@ -107,6 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (err) {
         console.error('Error initializing auth:', err)
       } finally {
+        clearTimeout(loadingTimeout)
         setLoading(false)
       }
     }
@@ -128,6 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 
     return () => {
+      clearTimeout(loadingTimeout)
       subscription.unsubscribe()
     }
   }, [supabase, fetchProfile])
