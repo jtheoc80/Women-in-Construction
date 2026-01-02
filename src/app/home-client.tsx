@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Navbar } from '@/components/Navbar'
 import { useGatedAction } from '@/contexts/AuthContext'
@@ -12,13 +12,6 @@ interface PosterProfile {
   display_name: string
   company: string
   role: string | null
-}
-
-interface ListingPhoto {
-  id: string
-  listing_id: string
-  storage_path: string
-  sort_order: number
 }
 
 interface Listing {
@@ -43,7 +36,6 @@ interface Listing {
   full_address?: string | null
   is_owner?: boolean
   poster_profiles?: PosterProfile | null
-  listing_photos?: ListingPhoto[]
   cover_photo_url?: string | null
   photo_urls?: string[] | null
   profiles?: { display_name: string }
@@ -51,23 +43,21 @@ interface Listing {
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 
-function getPhotoUrl(storagePath: string): string {
-  // If it's already a full URL (external image), return as-is
-  if (storagePath.startsWith('http://') || storagePath.startsWith('https://')) {
-    return storagePath
-  }
-  // Otherwise, construct Supabase storage URL
-  if (!SUPABASE_URL) return ''
-  return `${SUPABASE_URL}/storage/v1/object/public/listing-photos/${storagePath}`
+function normalizeListingPhotoUrl(urlOrPath?: string | null): string | null {
+  if (!urlOrPath) return null
+  const val = urlOrPath.trim()
+  if (!val) return null
+  if (val.startsWith('http://') || val.startsWith('https://')) return val
+  if (!SUPABASE_URL) return val
+  return `${SUPABASE_URL}/storage/v1/object/public/listing-photos/${val}`
 }
 
-function getListingCoverPhotoUrl(listing: Listing): string | null {
-  if (listing.listing_photos && listing.listing_photos.length > 0) {
-    return getPhotoUrl(listing.listing_photos[0].storage_path)
-  }
-  if (listing.cover_photo_url) return listing.cover_photo_url
-  if (listing.photo_urls && listing.photo_urls.length > 0) return listing.photo_urls[0]
-  return null
+function getListingHeroImageUrl(listing: Listing): string | null {
+  return (
+    normalizeListingPhotoUrl(listing.cover_photo_url) ??
+    normalizeListingPhotoUrl(listing.photo_urls?.[0]) ??
+    null
+  )
 }
 
 function getDisplayName(listing: Listing): string {
@@ -97,25 +87,32 @@ export default function HomeClient() {
   const router = useRouter()
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const { gateAction } = useGatedAction()
   const [showPostModal, setShowPostModal] = useState(false)
 
-  useEffect(() => {
-    async function loadListings() {
-      try {
-        const response = await fetch('/api/listings')
-        if (response.ok) {
-          const data = await response.json()
-          setListings(data)
-        }
-      } catch (error) {
-        console.error('Error loading listings:', error)
-      } finally {
-        setLoading(false)
+  const loadListings = useCallback(async () => {
+    try {
+      setError(null)
+      setLoading(true)
+      const response = await fetch('/api/listings')
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null)
+        throw new Error(payload?.error || `Request failed (${response.status})`)
       }
+      const data = await response.json()
+      setListings(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Error loading listings:', error)
+      setError(error instanceof Error ? error.message : 'Failed to load listings')
+    } finally {
+      setLoading(false)
     }
-    loadListings()
   }, [])
+
+  useEffect(() => {
+    loadListings()
+  }, [loadListings])
 
   function handlePostListingClick() {
     gateAction(() => {
@@ -161,12 +158,23 @@ export default function HomeClient() {
       {/* Listings Grid */}
       <section id="listings" className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
         <h2 className="mb-4 text-lg font-semibold text-slate-900 sm:mb-6 sm:text-xl">
-          {loading ? 'Loading listings...' : `${listings.length} Listings Available`}
+          {loading ? 'Loading listings...' : error ? 'Listings unavailable' : `${listings.length} Listings Available`}
         </h2>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+          </div>
+        ) : error ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+            <p className="text-sm font-semibold text-red-800">Couldn’t load listings</p>
+            <p className="mt-1 text-sm text-red-700">{error}</p>
+            <button
+              onClick={loadListings}
+              className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-red-600 px-5 text-sm font-semibold text-white hover:bg-red-500"
+            >
+              Retry
+            </button>
           </div>
         ) : listings.length === 0 ? (
           <div className="py-20 text-center text-slate-500">
@@ -181,9 +189,9 @@ export default function HomeClient() {
               >
                 {/* Photo */}
                 <div className="relative h-40 bg-slate-100 sm:h-44">
-                  {getListingCoverPhotoUrl(listing) ? (
+                  {getListingHeroImageUrl(listing) ? (
                     <img
-                      src={getListingCoverPhotoUrl(listing)!}
+                      src={getListingHeroImageUrl(listing)!}
                       alt={listing.area || listing.city}
                       className="h-full w-full object-cover"
                       loading="lazy"

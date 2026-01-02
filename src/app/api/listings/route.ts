@@ -101,6 +101,14 @@ interface CreateListingRequest {
   website?: string // honeypot
 }
 
+function toPublicListingPhotoUrl(storagePathOrUrl: string): string {
+  const val = storagePathOrUrl.trim()
+  if (val === '') return ''
+  if (val.startsWith('http://') || val.startsWith('https://')) return val
+  if (!supabaseUrl) return val
+  return `${supabaseUrl}/storage/v1/object/public/listing-photos/${val}`
+}
+
 // Validate the request body
 function validateRequest(body: unknown): { valid: true; data: CreateListingRequest } | { valid: false; error: string } {
   if (!body || typeof body !== 'object') {
@@ -152,9 +160,9 @@ function validateRequest(body: unknown): { valid: true; data: CreateListingReque
 
 /**
  * GET /api/listings
- * Fetch all active listings with related profile and photo data
+ * Fetch all active listings with related profile data and photo fields stored on listings
  * 
- * Response: Array of listings with poster_profiles and listing_photos
+ * Response: Array of listings with poster_profiles, cover_photo_url, photo_urls
  */
 export async function GET() {
   try {
@@ -165,18 +173,31 @@ export async function GET() {
     const { data: listings, error } = await adminClient
       .from('listings')
       .select(`
-        *,
+        id,
+        user_id,
+        poster_profile_id,
+        title,
+        city,
+        area,
+        rent_min,
+        rent_max,
+        move_in,
+        room_type,
+        commute_area,
+        details,
+        tags,
+        place_id,
+        lat,
+        lng,
+        is_active,
+        created_at,
+        cover_photo_url,
+        photo_urls,
         poster_profiles (
           id,
           display_name,
           company,
           role
-        ),
-        listing_photos (
-          id,
-          listing_id,
-          storage_path,
-          sort_order
         )
       `)
       .eq('is_active', true)
@@ -184,16 +205,20 @@ export async function GET() {
 
     if (error) {
       console.error('Error fetching listings:', error)
-      // Return empty array on error to prevent frontend from breaking
-      return NextResponse.json([])
+      return NextResponse.json(
+        { ok: false, error: 'Failed to fetch listings' },
+        { status: 500 }
+      )
     }
 
     // Return empty array if no listings found
     return NextResponse.json(listings || [])
   } catch (error) {
     console.error('Unexpected error fetching listings:', error)
-    // Return empty array on error to prevent frontend from breaking
-    return NextResponse.json([])
+    return NextResponse.json(
+      { ok: false, error: 'Failed to fetch listings' },
+      { status: 500 }
+    )
   }
 }
 
@@ -294,6 +319,11 @@ export async function POST(req: NextRequest) {
     }
 
     const { profile, listing, photoPaths } = validation.data
+    const allPhotoUrls = (photoPaths || [])
+      .map(toPublicListingPhotoUrl)
+      .filter(Boolean)
+    const coverPhotoUrl = allPhotoUrls[0] || null
+    const photoUrls = allPhotoUrls.length > 1 ? allPhotoUrls.slice(1) : null
 
     // ========================================
     // 5. CREATE POSTER PROFILE (for display purposes)
@@ -353,6 +383,8 @@ export async function POST(req: NextRequest) {
         lat: listing.lat || null,
         lng: listing.lng || null,
         full_address: listing.fullAddress?.trim() || null, // Store full address privately
+        cover_photo_url: coverPhotoUrl,
+        photo_urls: photoUrls,
         is_active: true,
       })
       .select('id')
@@ -367,25 +399,6 @@ export async function POST(req: NextRequest) {
     }
 
     const listingId = listingData.id
-
-    // ========================================
-    // 8. INSERT LISTING PHOTOS (if provided)
-    // ========================================
-    if (photoPaths && photoPaths.length > 0) {
-      const photoRecords = photoPaths.map((path, index) => ({
-        listing_id: listingId,
-        storage_path: path,
-        sort_order: index,
-      }))
-
-      const { error: photosError } = await adminClient.from('listing_photos').insert(photoRecords)
-
-      if (photosError) {
-        console.error('Error creating photo records:', photosError)
-        // Don't fail the whole request, just log the error
-        // Photos can be added later if needed
-      }
-    }
 
     return NextResponse.json(
       { ok: true, id: listingId },

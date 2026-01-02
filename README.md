@@ -112,7 +112,7 @@ Run the SQL migrations in order from `database/migrations/`:
 -- 003_profiles_rls_trigger.sql
 -- 004_in_app_messaging.sql
 -- 005_invites.sql
--- 006_listing_photos_profiles.sql  -- NEW: Photos + poster profiles
+-- 006_poster_profiles_photos.sql  -- NEW: Poster profiles + photo fields on listings
 ```
 
 ### 6. Run the development server
@@ -130,8 +130,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 | Table | Description |
 |-------|-------------|
 | `poster_profiles` | Public profile info for listing posters (name, company, role) |
-| `listings` | Roommate listings with location, rent, room type, etc. |
-| `listing_photos` | Photos for listings, stored in Supabase Storage |
+| `listings` | Roommate listings with location, rent, room type, and photo fields (`cover_photo_url`, `photo_urls`) |
 
 ### Private Tables (service role only)
 

@@ -49,36 +49,6 @@ ALTER TABLE public.profile_contacts ENABLE ROW LEVEL SECURITY;
 -- Service role bypasses RLS automatically
 
 -- ============================================================
--- 3) LISTING PHOTOS (publicly readable)
--- ============================================================
-CREATE TABLE IF NOT EXISTS public.listing_photos (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  listing_id uuid NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
-  storage_path text NOT NULL,
-  sort_order int NOT NULL DEFAULT 0,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS listing_photos_listing_id_idx ON public.listing_photos(listing_id);
-CREATE INDEX IF NOT EXISTS listing_photos_sort_order_idx ON public.listing_photos(listing_id, sort_order);
-
--- Enable RLS
-ALTER TABLE public.listing_photos ENABLE ROW LEVEL SECURITY;
-
--- Anon can read photos for active listings
-CREATE POLICY "Anon can read photos for active listings"
-  ON public.listing_photos
-  FOR SELECT
-  TO anon
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.listings 
-      WHERE id = listing_photos.listing_id 
-      AND is_active = true
-    )
-  );
-
--- ============================================================
 -- 4) MODIFY LISTINGS - add profile reference and location fields
 -- ============================================================
 -- Make user_id nullable for anonymous listings (only require one of user_id or poster_profile_id)
@@ -102,6 +72,11 @@ ALTER TABLE public.listings
 -- Add tags field for listings
 ALTER TABLE public.listings 
   ADD COLUMN IF NOT EXISTS tags text[];
+
+-- Add photo fields directly on listings (no separate photos table)
+ALTER TABLE public.listings
+  ADD COLUMN IF NOT EXISTS cover_photo_url text,
+  ADD COLUMN IF NOT EXISTS photo_urls text[];
 
 -- Create index for location-based queries
 CREATE INDEX IF NOT EXISTS listings_lat_lng_idx ON public.listings(lat, lng) WHERE lat IS NOT NULL AND lng IS NOT NULL;
@@ -131,6 +106,5 @@ ALTER TABLE public.rate_limits ENABLE ROW LEVEL SECURITY;
 -- ============================================================
 -- Grant select on public tables to anon
 GRANT SELECT ON public.poster_profiles TO anon;
-GRANT SELECT ON public.listing_photos TO anon;
 
 -- Note: profile_contacts and rate_limits have no anon grants (private)

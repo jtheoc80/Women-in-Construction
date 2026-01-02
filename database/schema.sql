@@ -49,21 +49,11 @@ create table if not exists public.listings (
   place_id text,
   lat double precision,
   lng double precision,
+  cover_photo_url text,
+  photo_urls text[],
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
-
--- Listing Photos (publicly readable)
-create table if not exists public.listing_photos (
-  id uuid primary key default gen_random_uuid(),
-  listing_id uuid not null references public.listings(id) on delete cascade,
-  storage_path text not null,
-  sort_order int not null default 0,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists listing_photos_listing_id_idx on public.listing_photos(listing_id);
-create index if not exists listing_photos_sort_order_idx on public.listing_photos(listing_id, sort_order);
 
 create index if not exists listings_city_idx on public.listings(city);
 create index if not exists listings_created_at_idx on public.listings(created_at desc);

@@ -170,6 +170,8 @@ create table if not exists public.listings (
   lat double precision,
   lng double precision,
   full_address text, -- PRIVATE: only visible to owner
+  cover_photo_url text,
+  photo_urls text[],
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -221,42 +223,6 @@ create policy "Users can delete own listings"
   on public.listings for delete
   to authenticated
   using (auth.uid() = user_id);
-
--- ============================================
--- LISTING PHOTOS TABLE
--- Photos for listings, stored in Supabase Storage
--- ============================================
-create table if not exists public.listing_photos (
-  id uuid primary key default gen_random_uuid(),
-  listing_id uuid not null references public.listings(id) on delete cascade,
-  storage_path text not null,
-  sort_order int not null default 0,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists listing_photos_listing_id_idx on public.listing_photos(listing_id);
-create index if not exists listing_photos_sort_order_idx on public.listing_photos(listing_id, sort_order);
-
--- RLS for listing_photos
-alter table public.listing_photos enable row level security;
-
--- Anyone can view photos for active listings
-create policy "Listing photos are viewable by everyone"
-  on public.listing_photos for select
-  using (true);
-
--- Photos can be inserted via service role (upload API)
-create policy "Authenticated users can insert photos"
-  on public.listing_photos for insert
-  to authenticated
-  with check (
-    exists (
-      select 1
-      from public.listings l
-      where l.id = listing_photos.listing_id
-        and l.user_id = auth.uid()
-    )
-  );
 
 -- ============================================
 -- INTRO REQUESTS TABLE
