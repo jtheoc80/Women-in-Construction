@@ -7,16 +7,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AddressAutocomplete, type AddressResult } from '@/components/AddressAutocomplete'
 import { useAuth } from '@/contexts/AuthContext'
+import { ListingImage } from '@/components/ListingImage'
 
 // Constants
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const MAX_PHOTOS = 6
-const MAX_FILE_SIZE = 6 * 1024 * 1024 // 6MB
-
-function getPhotoUrl(storagePath: string): string {
-  if (!SUPABASE_URL) return ''
-  return `${SUPABASE_URL}/storage/v1/object/public/listing-photos/${storagePath}`
-}
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB (before webp conversion)
 
 // Step indicator component
 function StepIndicator({ currentStep, totalSteps }: { currentStep: number; totalSteps: number }) {
@@ -644,7 +639,7 @@ export function PostListingModal({ open, onClose, onSuccess }: PostListingModalP
                         : 'Drop photos here or tap to select'}
                     </span>
                     <span className="mt-1 text-xs text-white/50">
-                      JPG, PNG, WebP • Max 6MB each
+                      JPG, PNG, WebP, GIF • Max 10MB each (auto-converted to WebP)
                     </span>
                   </label>
                 </div>
@@ -657,22 +652,23 @@ export function PostListingModal({ open, onClose, onSuccess }: PostListingModalP
                 {photos.length > 0 && (
                   <div className="grid grid-cols-3 gap-2">
                     {photos.map((path, index) => (
-                      <div key={path} className="relative aspect-square overflow-hidden rounded-xl">
-                        <img
-                          src={getPhotoUrl(path)}
+                      <div key={path} className="relative overflow-hidden rounded-xl">
+                        <ListingImage
+                          src={path}
                           alt={`Upload ${index + 1}`}
-                          className="h-full w-full object-cover"
+                          aspectRatio="1/1"
+                          sizes="120px"
                         />
                         <button
                           type="button"
                           onClick={() => removePhoto(index)}
-                          className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-white shadow-lg"
+                          className="absolute right-1 top-1 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-white shadow-lg"
                           aria-label="Remove photo"
                         >
                           <X className="h-4 w-4" />
                         </button>
                         {index === 0 && (
-                          <span className="absolute bottom-1 left-1 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">
+                          <span className="absolute bottom-1 left-1 z-10 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">
                             Cover
                           </span>
                         )}
