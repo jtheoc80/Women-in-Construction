@@ -161,11 +161,12 @@ export async function GET() {
     const adminClient = createAdminClient()
 
     // Fetch all active listings with related data
+    // Use explicit foreign key hint (poster_profile_id) for PostgREST to find the relationship
     const { data: listings, error } = await adminClient
       .from('listings')
       .select(`
         *,
-        poster_profiles (
+        poster_profiles:poster_profile_id (
           id,
           display_name,
           company,
