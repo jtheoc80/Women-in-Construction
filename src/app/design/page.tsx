@@ -464,6 +464,11 @@ function PhotoUploader({
         return
       }
 
+      // Log the upload batch ID for tracking (the photos are stored in storage with this batch ID as folder name)
+      if (data.uploadBatchId) {
+        console.log('Photos uploaded with batch ID:', data.uploadBatchId)
+      }
+
       onUploadComplete([...uploadedPaths, ...data.paths])
     } catch (err) {
       console.error('Upload error:', err)

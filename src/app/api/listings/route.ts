@@ -151,8 +151,11 @@ function validateRequest(body: unknown): { valid: true; data: CreateListingReque
  * Request body:
  * - profile: { displayName, company, role?, contactPreference, contactValue }
  * - listing: { title?, city, area?, rentMin?, rentMax?, moveInISO?, roomType, commuteArea?, tags?, bio?, placeId?, lat?, lng? }
- * - photoPaths?: string[] (returned from /api/upload)
+ * - photoPaths?: string[] (storage paths returned from /api/upload)
  * - website: honeypot field (should be empty)
+ * 
+ * Note: Photo paths from /api/upload should be used as-is. They contain the upload batch ID
+ * as the folder name, which tracks the photos for this listing in storage.
  * 
  * Response: { ok: true, id: string }
  */
