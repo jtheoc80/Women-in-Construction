@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Navbar } from '@/components/Navbar'
 import { AddressAutocomplete, type AddressResult } from '@/components/AddressAutocomplete'
 import { MapPin, Target, X, ChevronLeft, ChevronRight, Upload, Loader2, Building2 } from 'lucide-react'
