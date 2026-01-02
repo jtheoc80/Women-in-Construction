@@ -33,7 +33,7 @@ export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950 px-4 py-4 text-white/90">
       <div className="mx-auto flex max-w-6xl items-center justify-between">
-        <a href="/design" className="flex items-center gap-2">
+        <a href="/browse" className="flex items-center gap-2">
           <SiteLogo />
           <span className="text-xl font-bold tracking-tight text-white sm:text-2xl">
             SiteSisters

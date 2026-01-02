@@ -30,8 +30,8 @@ export function SignUpClient() {
   const searchParams = useSearchParams()
   const supabase = getSupabaseBrowserClient()
 
-  const next = searchParams.get('next') || '/design'
-  const safeNext = next.startsWith('/') ? next : '/design'
+  const next = searchParams.get('next') || '/browse'
+  const safeNext = next.startsWith('/') ? next : '/browse'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -452,7 +452,7 @@ export function SignUpClient() {
               <p className="text-sm text-white/60">
                 Already have an account?{' '}
                 <Link
-                  href={`/sign-in${safeNext !== '/design' ? `?next=${encodeURIComponent(safeNext)}` : ''}`}
+                  href={`/sign-in${safeNext !== '/browse' ? `?next=${encodeURIComponent(safeNext)}` : ''}`}
                   className="min-h-[44px] font-semibold text-teal-400 hover:text-teal-300"
                 >
                   Sign in

@@ -62,7 +62,7 @@ export default function JobsitesIndexPage() {
     : jobsites
 
   const handlePostListing = () => {
-    gateAction(() => router.push('/design'))
+    gateAction(() => router.push('/browse'))
   }
 
   return (
