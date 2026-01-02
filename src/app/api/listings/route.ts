@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { createServerClient } from '@supabase/ssr'
-import { DEMO_LISTINGS } from '@/lib/demo-data'
+import { demoListings, DEMO_MODE } from '@/lib/demo/demoListings'
 
 // Configuration
 const RATE_LIMIT_BUCKET = 'post_listing'
@@ -110,6 +110,38 @@ function toPublicListingPhotoUrl(storagePathOrUrl: string): string {
   return `${supabaseUrl}/storage/v1/object/public/listing-photos/${val}`
 }
 
+/**
+ * Convert demo listings to API response format
+ */
+function getDemoListingsForApi() {
+  return demoListings.map(demo => ({
+    id: demo.id,
+    user_id: `demo-user-${demo.id}`,
+    title: demo.title,
+    city: demo.city,
+    area: demo.countyOrArea,
+    rent_min: demo.priceMin,
+    rent_max: demo.priceMax,
+    move_in: demo.moveInDate,
+    room_type: demo.roomTypeRaw,
+    commute_area: demo.nearLabel,
+    details: demo.description,
+    tags: demo.amenities,
+    is_active: true,
+    is_demo: true,
+    created_at: new Date().toISOString(),
+    cover_photo_url: demo.photoUrls[0] || null,
+    photo_urls: demo.photoUrls.slice(1),
+    poster_profiles: {
+      id: `demo-poster-${demo.id}`,
+      display_name: demo.postedByName,
+      company: demo.companyName,
+      role: null,
+    },
+    shift: demo.shift || null,
+  }))
+}
+
 // Validate the request body
 function validateRequest(body: unknown): { valid: true; data: CreateListingRequest } | { valid: false; error: string } {
   if (!body || typeof body !== 'object') {
@@ -166,15 +198,19 @@ function validateRequest(body: unknown): { valid: true; data: CreateListingReque
  * PUBLIC ENDPOINT - No authentication required
  * 
  * Response: Array of listings with poster_profiles, cover_photo_url, photo_urls
+ * 
+ * When DEMO_MODE is enabled (default), demo listings are always appended to results.
  */
 export async function GET() {
-  console.log('[Listings GET] Fetching active listings...')
+  console.log('[Listings GET] Fetching active listings... DEMO_MODE:', DEMO_MODE)
+  
+  const demoListingsApi = getDemoListingsForApi()
   
   try {
     // Check if Supabase is configured
     if (!supabaseUrl) {
       console.log('[Listings GET] Supabase not configured, returning demo listings')
-      return NextResponse.json(DEMO_LISTINGS.map(l => ({ ...l, is_demo: true })))
+      return NextResponse.json(demoListingsApi)
     }
 
     let adminClient
@@ -183,7 +219,7 @@ export async function GET() {
     } catch (clientError) {
       console.error('[Listings GET] Failed to create admin client:', clientError)
       console.log('[Listings GET] Returning demo listings due to client creation failure')
-      return NextResponse.json(DEMO_LISTINGS.map(l => ({ ...l, is_demo: true })))
+      return NextResponse.json(demoListingsApi)
     }
 
     // First, try to fetch with poster_profiles join
@@ -255,29 +291,43 @@ export async function GET() {
       if (fallbackError) {
         console.error('[Listings GET] Fallback query also failed:', fallbackError.message)
         console.log('[Listings GET] Returning demo listings due to query failure')
-        return NextResponse.json(DEMO_LISTINGS.map(l => ({ ...l, is_demo: true })))
+        return NextResponse.json(demoListingsApi)
       }
 
       console.log(`[Listings GET] Fallback success: ${fallbackListings?.length || 0} listings`)
-      if (!fallbackListings || fallbackListings.length === 0) {
-        console.log('[Listings GET] No listings found (fallback), returning demo listings')
-        return NextResponse.json(DEMO_LISTINGS.map(l => ({ ...l, is_demo: true })))
+      const dbListings = fallbackListings || []
+      
+      // Append demo listings if DEMO_MODE is enabled
+      if (DEMO_MODE) {
+        return NextResponse.json([...dbListings, ...demoListingsApi])
       }
-      return NextResponse.json(fallbackListings)
+      
+      if (dbListings.length === 0) {
+        console.log('[Listings GET] No listings found (fallback), returning demo listings')
+        return NextResponse.json(demoListingsApi)
+      }
+      return NextResponse.json(dbListings)
     }
 
-    console.log(`[Listings GET] Success: ${listings?.length || 0} listings`)
+    console.log(`[Listings GET] Success: ${listings?.length || 0} DB listings`)
+    const dbListings = listings || []
     
-    if (!listings || listings.length === 0) {
+    // Append demo listings if DEMO_MODE is enabled
+    if (DEMO_MODE) {
+      console.log(`[Listings GET] Appending ${demoListingsApi.length} demo listings`)
+      return NextResponse.json([...dbListings, ...demoListingsApi])
+    }
+    
+    if (dbListings.length === 0) {
       console.log('[Listings GET] No listings found, returning demo listings')
-      return NextResponse.json(DEMO_LISTINGS.map(l => ({ ...l, is_demo: true })))
+      return NextResponse.json(demoListingsApi)
     }
 
-    return NextResponse.json(listings)
+    return NextResponse.json(dbListings)
   } catch (error) {
     console.error('[Listings GET] Unexpected error:', error)
     console.log('[Listings GET] Returning demo listings due to unexpected error')
-    return NextResponse.json(DEMO_LISTINGS.map(l => ({ ...l, is_demo: true })))
+    return NextResponse.json(demoListingsApi)
   }
 }
 
