@@ -40,11 +40,59 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # Server-side only, never expose!
 
+# Site URL (required for email verification links in production)
+NEXT_PUBLIC_SITE_URL=https://your-production-domain.com
+
 # Google Maps API (required for address autocomplete)
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+
+# Development only: Auto-confirm email (skip email verification)
+# NEXT_PUBLIC_DEV_AUTO_CONFIRM=true
 ```
 
-### 3. Set up Supabase Storage
+### 3. Configure Supabase Auth (Email Verification)
+
+For email verification links to work correctly, you must configure the redirect URLs in Supabase:
+
+1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
+2. Navigate to **Authentication** → **URL Configuration**
+3. Set the following:
+
+| Setting | Value |
+|---------|-------|
+| **Site URL** | Your production domain (e.g., `https://sitesistersconstruction.com`) |
+| **Redirect URLs** | Add all allowed callback URLs (see below) |
+
+#### Required Redirect URLs
+
+Add these URLs to the **Redirect URLs** list:
+
+```
+# Local development
+http://localhost:3000/auth/callback
+
+# Production
+https://your-production-domain.com/auth/callback
+
+# Vercel preview deployments (if using Vercel)
+https://*-your-team.vercel.app/auth/callback
+```
+
+#### Troubleshooting Email Delivery
+
+If verification emails are not being delivered:
+
+1. **Check Redirect URL Allowlist**: The most common issue is that the redirect URL is not in the allowlist. Check the browser console for errors mentioning "redirect".
+
+2. **Check Supabase Auth Logs**: Go to **Authentication** → **Logs** in your Supabase dashboard to see if emails are being sent.
+
+3. **Check Spam Folder**: Supabase emails may end up in spam, especially during development.
+
+4. **Verify SMTP Settings**: For production, consider configuring a custom SMTP provider in **Project Settings** → **Auth** → **SMTP Settings**.
+
+5. **Debug Logging**: In development, check the browser console for `[SignUp]`, `[SignIn]`, or `[Auth Callback]` logs that show the request/response details.
+
+### 4. Set up Supabase Storage
 
 1. Go to your Supabase project dashboard
 2. Navigate to **Storage** in the sidebar
@@ -53,7 +101,7 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 5. Set the bucket to **Public** (for MVP - photos are publicly viewable)
 6. Optionally, configure allowed MIME types: `image/jpeg`, `image/png`, `image/webp`
 
-### 4. Run database migrations
+### 5. Run database migrations
 
 Run the SQL migrations in order from `database/migrations/`:
 
@@ -67,7 +115,7 @@ Run the SQL migrations in order from `database/migrations/`:
 -- 006_listing_photos_profiles.sql  -- NEW: Photos + poster profiles
 ```
 
-### 5. Run the development server
+### 6. Run the development server
 
 ```bash
 npm run dev

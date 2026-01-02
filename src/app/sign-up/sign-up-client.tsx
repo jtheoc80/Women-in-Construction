@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -8,7 +8,22 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { SiteLogo } from '@/components/SiteLogo'
-import { Mail, Lock, User, Loader2, ArrowRight, Check } from 'lucide-react'
+import { Mail, Lock, User, Loader2, ArrowRight, Check, RefreshCw } from 'lucide-react'
+
+/** Build the redirect URL for email verification */
+function getEmailRedirectTo(next: string): string {
+  // Use NEXT_PUBLIC_SITE_URL in production, fallback to window.location.origin in dev
+  const base = process.env.NEXT_PUBLIC_SITE_URL || 
+    (typeof window !== 'undefined' ? window.location.origin : '')
+  
+  const callbackUrl = new URL('/auth/callback', base)
+  callbackUrl.searchParams.set('next', next)
+  
+  return callbackUrl.toString()
+}
+
+/** Resend cooldown in seconds */
+const RESEND_COOLDOWN_SECONDS = 30
 
 export function SignUpClient() {
   const router = useRouter()
@@ -24,6 +39,11 @@ export function SignUpClient() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmationSent, setConfirmationSent] = useState(false)
+  
+  // Resend cooldown state
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendMessage, setResendMessage] = useState<string | null>(null)
 
   const passwordRequirements = [
     { met: password.length >= 8, text: 'At least 8 characters' },
@@ -33,6 +53,17 @@ export function SignUpClient() {
   ]
 
   const isPasswordValid = passwordRequirements.every(req => req.met)
+
+  // Cooldown timer effect
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    
+    const timer = setInterval(() => {
+      setResendCooldown(prev => Math.max(0, prev - 1))
+    }, 1000)
+    
+    return () => clearInterval(timer)
+  }, [resendCooldown])
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,21 +84,44 @@ export function SignUpClient() {
     setLoading(true)
     setError(null)
 
+    const emailRedirectTo = getEmailRedirectTo(safeNext)
+    
+    // Debug logging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[SignUp] Attempting signup with:', {
+        email: email.trim(),
+        emailRedirectTo,
+      })
+    }
+
     try {
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}${safeNext}`,
+          emailRedirectTo,
           data: {
             display_name: displayName.trim() || email.split('@')[0],
           },
         },
       })
 
+      // Debug logging in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[SignUp] Response:', {
+          user: signUpData?.user?.id,
+          session: !!signUpData?.session,
+          error: signUpError?.message,
+          errorCode: signUpError?.status,
+        })
+      }
+
       if (signUpError) {
         if (signUpError.message.includes('already registered')) {
           setError('This email is already registered. Please sign in instead.')
+        } else if (signUpError.message.includes('redirect')) {
+          // Likely a redirect URL allowlist issue
+          setError(`Email delivery failed: ${signUpError.message}. Please contact support if this persists.`)
         } else {
           setError(signUpError.message)
         }
@@ -114,11 +168,66 @@ export function SignUpClient() {
         
         // Confirmation email sent (or dev confirm failed)
         setConfirmationSent(true)
+        setResendCooldown(RESEND_COOLDOWN_SECONDS)
       }
+    } catch (err) {
+      // Catch any unexpected errors
+      console.error('[SignUp] Unexpected error:', err)
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
   }
+
+  const handleResendEmail = useCallback(async () => {
+    if (resendCooldown > 0 || resendLoading) return
+    
+    setResendLoading(true)
+    setResendMessage(null)
+    setError(null)
+
+    const emailRedirectTo = getEmailRedirectTo(safeNext)
+
+    // Debug logging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[SignUp] Resending verification email:', {
+        email: email.trim(),
+        emailRedirectTo,
+      })
+    }
+
+    try {
+      // Use resend method for verification emails
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim(),
+        options: {
+          emailRedirectTo,
+        },
+      })
+
+      // Debug logging in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[SignUp] Resend response:', {
+          error: resendError?.message,
+          errorCode: resendError?.status,
+        })
+      }
+
+      if (resendError) {
+        setError(resendError.message)
+        return
+      }
+
+      setResendMessage('Verification email resent! Check your inbox.')
+      setResendCooldown(RESEND_COOLDOWN_SECONDS)
+    } catch (err) {
+      console.error('[SignUp] Resend error:', err)
+      setError('Failed to resend email. Please try again.')
+    } finally {
+      setResendLoading(false)
+    }
+  }, [email, safeNext, resendCooldown, resendLoading, supabase.auth])
 
   if (confirmationSent) {
     return (
@@ -142,21 +251,65 @@ export function SignUpClient() {
                 We sent a verification link to <span className="font-medium text-white">{email}</span>.
                 Click the link in your email to activate your account.
               </p>
+              
+              {/* Resend section */}
               <div className="mt-6 space-y-3">
+                {/* Success/Error messages */}
+                {resendMessage && (
+                  <div className="rounded-lg bg-teal-500/10 p-3 text-sm text-teal-400">
+                    {resendMessage}
+                  </div>
+                )}
+                {error && (
+                  <div className="rounded-lg bg-red-500/10 p-3 text-sm text-red-400">
+                    {error}
+                  </div>
+                )}
+                
+                {/* Resend button */}
                 <button
-                  onClick={() => {
-                    setConfirmationSent(false)
-                    setEmail('')
-                    setPassword('')
-                    setDisplayName('')
-                  }}
-                  className="min-h-[44px] rounded-xl px-4 text-sm font-medium text-teal-400 hover:text-teal-300"
+                  onClick={handleResendEmail}
+                  disabled={resendCooldown > 0 || resendLoading}
+                  className="inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 text-sm font-medium text-teal-400 hover:text-teal-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Use a different email
+                  {resendLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : resendCooldown > 0 ? (
+                    <>
+                      <RefreshCw className="h-4 w-4" />
+                      Resend in {resendCooldown}s
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4" />
+                      Resend verification email
+                    </>
+                  )}
                 </button>
+                
+                <div className="border-t border-white/10 pt-3">
+                  <button
+                    onClick={() => {
+                      setConfirmationSent(false)
+                      setEmail('')
+                      setPassword('')
+                      setDisplayName('')
+                      setError(null)
+                      setResendMessage(null)
+                    }}
+                    className="min-h-[44px] rounded-xl px-4 text-sm font-medium text-white/60 hover:text-white/90"
+                  >
+                    Use a different email
+                  </button>
+                </div>
+                
                 <p className="text-xs text-white/50">
                   Didn&apos;t receive the email? Check your spam folder.
                 </p>
+                
                 {process.env.NODE_ENV === 'development' && (
                   <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
                     <p className="text-xs text-amber-400">

@@ -184,18 +184,49 @@ export function SignupClient() {
     setError(null)
     setMessage(null)
 
+    // Build redirect URL for email OTP
+    const base = process.env.NEXT_PUBLIC_SITE_URL || 
+      (typeof window !== 'undefined' ? window.location.origin : '')
+    const callbackUrl = new URL('/auth/callback', base)
+    callbackUrl.searchParams.set('next', defaultAfterAuth)
+    const emailRedirectTo = callbackUrl.toString()
+
+    // Debug logging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Signup OTP] Sending email OTP:', {
+        email: email.trim(),
+        emailRedirectTo,
+      })
+    }
+
     try {
       // In dev mode with auto-confirm, use a magic code bypass
       const isDev = process.env.NODE_ENV === 'development'
       const devAutoConfirm = process.env.NEXT_PUBLIC_DEV_AUTO_CONFIRM === 'true'
       
-      const { error: sendError } = await supabase.auth.signInWithOtp({
+      const { data, error: sendError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        options: { shouldCreateUser: true },
+        options: { 
+          shouldCreateUser: true,
+          emailRedirectTo,
+        },
       })
 
+      // Debug logging in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Signup OTP] Response:', {
+          data,
+          error: sendError?.message,
+          errorCode: sendError?.status,
+        })
+      }
+
       if (sendError) {
-        setError(sendError.message)
+        if (sendError.message.includes('redirect')) {
+          setError(`Email delivery failed: ${sendError.message}. Please contact support if this persists.`)
+        } else {
+          setError(sendError.message)
+        }
         return
       }
 
@@ -205,6 +236,9 @@ export function SignupClient() {
         setMessage('Enter the 8-digit code from your email.')
       }
       setStep('verify')
+    } catch (err) {
+      console.error('[Signup OTP] Unexpected error:', err)
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -222,11 +256,24 @@ export function SignupClient() {
       formattedPhone = '+1' + formattedPhone.replace(/\D/g, '')
     }
 
+    // Debug logging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Signup OTP] Sending phone OTP:', { phone: formattedPhone })
+    }
+
     try {
-      const { error: sendError } = await supabase.auth.signInWithOtp({
+      const { data, error: sendError } = await supabase.auth.signInWithOtp({
         phone: formattedPhone,
         options: { shouldCreateUser: true },
       })
+
+      // Debug logging in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Signup OTP] Phone response:', {
+          data,
+          error: sendError?.message,
+        })
+      }
 
       if (sendError) {
         setError(sendError.message)
@@ -235,6 +282,9 @@ export function SignupClient() {
 
       setMessage('Enter the 8-digit code from your text message.')
       setStep('verify')
+    } catch (err) {
+      console.error('[Signup OTP] Unexpected error:', err)
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -251,12 +301,30 @@ export function SignupClient() {
       formattedPhone = '+1' + formattedPhone.replace(/\D/g, '')
     }
 
+    // Debug logging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Signup OTP] Verifying:', {
+        type: activeTab,
+        email: activeTab === 'email' ? email.trim() : undefined,
+        phone: activeTab === 'phone' ? formattedPhone : undefined,
+      })
+    }
+
     try {
-      const { error: verifyError } = await supabase.auth.verifyOtp(
+      const { data, error: verifyError } = await supabase.auth.verifyOtp(
         activeTab === 'email'
           ? { email: email.trim(), token: otp.trim(), type: 'email' }
           : { phone: formattedPhone, token: otp.trim(), type: 'sms' }
       )
+
+      // Debug logging in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Signup OTP] Verify response:', {
+          success: !!data?.session,
+          error: verifyError?.message,
+          userId: data?.user?.id,
+        })
+      }
 
       if (verifyError) {
         setError(verifyError.message)
