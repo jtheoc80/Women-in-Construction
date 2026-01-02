@@ -14,77 +14,93 @@ export function SiteSistersMark({
       className={cn('h-7 w-7', className)}
       aria-hidden="true"
     >
-      {/* Red hair flowing beneath */}
+      {/* Hair background - flowing waves */}
       <path
-        d="M6 18C5 21 4.5 25 5 28C5.5 30 7 31 8 30C9 29 8.5 26 9 23C9.5 20 10.5 18 10.5 18"
-        stroke="#DC2626"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
+        d="M5 17C4 19 3.5 22 4 25C4.5 27.5 6 28.5 7 27.5C7.5 27 7.5 25 8 23C8.5 21 9 19 9 17"
+        fill="#B91C1C"
       />
       <path
-        d="M10 19C9.5 22 9.5 25 10 28C10.5 30 11.5 31 12.5 30.5"
-        stroke="#DC2626"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
+        d="M8 17C7.5 20 7 23 7.5 26C8 28 9.5 28.5 10.5 27.5C11 27 11 25 11.5 22C11.7 20 12 18 12 17"
+        fill="#DC2626"
       />
       <path
-        d="M14 19C14 22 14.5 25.5 15 28C15.5 29.5 16.5 30 17 29"
-        stroke="#DC2626"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
+        d="M11 17C11 20 10.5 23 11 26C11.5 28.5 13 29 14 28C14.5 27.5 14.5 25 15 22C15.3 20 15.5 18 15.5 17"
+        fill="#B91C1C"
       />
       <path
-        d="M18 19C18.5 22 18.5 25 18 28C17.5 30 18.5 31 19.5 30.5"
-        stroke="#DC2626"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
+        d="M15 17C15 20 15 23 15.5 26C16 28.5 17.5 29 18.5 28C19 27.5 18.5 25 18 22C17.7 20 17 18 17 17"
+        fill="#DC2626"
       />
       <path
-        d="M22 19C22.5 22 23 25 23 28C23 30 24.5 31 25.5 30C26.5 29 26 26 25.5 23C25 20 24 18 24 18"
-        stroke="#DC2626"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
+        d="M17 17C17.5 20 18 23 17.5 26C17 28 18 29 19.5 28C20.5 27 21 25 21.5 22C21.8 20 22 18 22 17"
+        fill="#B91C1C"
       />
       <path
-        d="M26 18C27 21 27.5 24 27 27C26.5 29 25 30 24 29"
-        stroke="#DC2626"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
+        d="M21 17C21.5 20 22.5 23 22 26C21.5 28 23 29 24.5 28C25.5 27 25.5 25 25 22C24.7 20 24 18 24 17"
+        fill="#DC2626"
+      />
+      <path
+        d="M23 17C24 19 25 22 25 25C25 27.5 26.5 28 27.5 27C28.5 26 28 24 27.5 21C27 19 26 17 26 17"
+        fill="#B91C1C"
       />
       
-      {/* Hard hat dome */}
+      {/* Hard hat dome - main shape */}
       <path
-        d="M6 16C6 10.5 10.5 6 16 6C21.5 6 26 10.5 26 16H6Z"
-        fill="#FCD34D"
-        stroke="#F59E0B"
-        strokeWidth="1"
+        d="M5.5 15.5C5.5 9.7 10.2 5 16 5C21.8 5 26.5 9.7 26.5 15.5H5.5Z"
+        fill="#FBBF24"
       />
       
-      {/* Hard hat brim */}
+      {/* Hard hat dome highlight */}
       <path
-        d="M4 16C4 15 4.5 14 6 14H26C27.5 14 28 15 28 16C28 17 27.5 18 26 18H6C4.5 18 4 17 4 16Z"
-        fill="#FCD34D"
-        stroke="#F59E0B"
-        strokeWidth="1"
-      />
-      
-      {/* Hard hat ridge/detail */}
-      <path
-        d="M10 10C11 8 13.5 7 16 7C18.5 7 21 8 22 10"
-        stroke="#F59E0B"
+        d="M8 14C8 10 11.6 7 16 7C17.5 7 18.9 7.4 20 8"
+        stroke="#FDE68A"
         strokeWidth="1.5"
         strokeLinecap="round"
         fill="none"
       />
       
-      {/* Center front detail */}
-      <rect x="14.5" y="9" width="3" height="5" rx="0.5" fill="#F59E0B" />
+      {/* Hard hat dome shadow/depth */}
+      <path
+        d="M7 15C7 10.5 11 7 16 7C21 7 25 10.5 25 15"
+        stroke="#F59E0B"
+        strokeWidth="0.5"
+        fill="none"
+      />
+      
+      {/* Hard hat brim */}
+      <path
+        d="M3 15C3 13.9 3.9 13 5 13H27C28.1 13 29 13.9 29 15C29 16.6 27.6 18 26 18H6C4.4 18 3 16.6 3 15Z"
+        fill="#FBBF24"
+      />
+      
+      {/* Brim top edge highlight */}
+      <path
+        d="M5 13.5H27"
+        stroke="#FDE68A"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      
+      {/* Brim shadow */}
+      <path
+        d="M6 17.5C7 17.8 11 18 16 18C21 18 25 17.8 26 17.5"
+        stroke="#D97706"
+        strokeWidth="0.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+      
+      {/* Center front vent/detail */}
+      <rect x="14" y="8" width="4" height="5" rx="1" fill="#F59E0B" />
+      <rect x="14.5" y="8.5" width="3" height="4" rx="0.5" fill="#FBBF24" />
+      
+      {/* Top ridge detail */}
+      <path
+        d="M16 5V8"
+        stroke="#F59E0B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
     </svg>
   )
 }
