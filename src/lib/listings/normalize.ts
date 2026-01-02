@@ -5,6 +5,8 @@
  * normalizing both DB records and demo data into a consistent shape.
  */
 
+import { demoListings, DEMO_MODE, type DemoListing } from '@/lib/demo/demoListings'
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 
 /**
@@ -28,6 +30,10 @@ export interface ListingCardModel {
   // Pass through for detail page linking
   rawId: string
 }
+
+// Re-export demo utilities
+export { demoListings, DEMO_MODE, getDemoListingById, isDemoListingId, getDemoListingIds } from '@/lib/demo/demoListings'
+export type { DemoListing } from '@/lib/demo/demoListings'
 
 /**
  * Raw listing shape from API/DB - accepts various field name conventions
@@ -326,4 +332,70 @@ export function normalizeListing(raw: RawListing): ListingCardModel {
  */
 export function normalizeListings(rawListings: RawListing[]): ListingCardModel[] {
   return rawListings.map(normalizeListing)
+}
+
+/**
+ * Normalize a DemoListing to ListingCardModel
+ */
+export function normalizeDemoListing(demo: DemoListing): ListingCardModel {
+  const moveInFormatted = formatMoveInDate(demo.moveInDate)
+  
+  return {
+    id: demo.id,
+    titleCity: demo.city,
+    subLocation: demo.countyOrArea,
+    roomType: demo.roomType,
+    roomTypeRaw: demo.roomTypeRaw,
+    isDemo: true,
+    priceText: formatPriceText(demo.priceMin, demo.priceMax),
+    nearText: `Near ${demo.nearLabel}`,
+    moveInText: moveInFormatted ? `Move-in: ${moveInFormatted}` : null,
+    postedByText: demo.postedByName,
+    companyText: demo.companyName,
+    coverPhotoUrl: demo.photoUrls[0] || null,
+    photoCount: demo.photoUrls.length,
+    photoUrls: demo.photoUrls,
+    rawId: demo.id, // Demo listings use their stable string ID
+  }
+}
+
+/**
+ * Get normalized demo listings for card display
+ */
+export function getNormalizedDemoListings(): ListingCardModel[] {
+  return demoListings.map(normalizeDemoListing)
+}
+
+/**
+ * Normalize listings and optionally append demo listings
+ * 
+ * @param rawListings - DB listings from API
+ * @param options.includeDemoListings - Whether to append demo listings (defaults to DEMO_MODE)
+ * @param options.onlyIfEmpty - Only include demo listings if DB has none
+ */
+export function normalizeListingsWithDemo(
+  rawListings: RawListing[],
+  options: {
+    includeDemoListings?: boolean
+    onlyIfEmpty?: boolean
+  } = {}
+): ListingCardModel[] {
+  const { includeDemoListings = DEMO_MODE, onlyIfEmpty = false } = options
+  
+  // Normalize DB listings
+  const dbListings = normalizeListings(rawListings)
+  
+  // Determine if we should include demo listings
+  const shouldIncludeDemo = includeDemoListings && (!onlyIfEmpty || dbListings.length === 0)
+  
+  if (!shouldIncludeDemo) {
+    return dbListings
+  }
+  
+  // Get demo listings that aren't already in DB (by ID)
+  const dbIds = new Set(dbListings.map(l => l.id))
+  const demoCards = getNormalizedDemoListings().filter(d => !dbIds.has(d.id))
+  
+  // Append demo listings after DB listings
+  return [...dbListings, ...demoCards]
 }
