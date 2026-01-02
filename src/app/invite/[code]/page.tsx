@@ -70,7 +70,7 @@ export default async function InvitePage({ params }: PageProps) {
   })
 
   // Redirect to signup with invite code
-  redirect(`/signup?invite=${encodeURIComponent(code)}`)
+  redirect(`/sign-up?invite=${encodeURIComponent(code)}`)
 }
 
 function InvalidInvitePage({ reason }: { reason: string }) {

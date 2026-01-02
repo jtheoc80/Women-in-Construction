@@ -60,7 +60,7 @@ export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
                   {profile?.display_name || 'User'}
                 </p>
                 <p className="text-xs text-white/60">
-                  {profile?.home_city || 'Complete profile'}
+                  {profile?.company || 'Complete profile'}
                 </p>
               </div>
 
@@ -72,7 +72,7 @@ export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
                 </summary>
                 <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-xl border border-white/10 bg-slate-950 shadow-lg">
                   <Link
-                    href="/account"
+                    href="/profile"
                     className="block px-3 py-2 text-sm text-white/90 hover:bg-white/10"
                   >
                     My profile
@@ -106,7 +106,7 @@ export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
               variant="ghost"
               className="border border-white/20 bg-transparent text-sm text-white hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-teal-400"
             >
-              <Link href={`/signup?next=${encodeURIComponent(currentUrl)}`}>Sign in</Link>
+              <Link href={`/sign-in?next=${encodeURIComponent(currentUrl)}`}>Sign in</Link>
             </Button>
           )}
         </div>

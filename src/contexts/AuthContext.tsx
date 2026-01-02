@@ -8,8 +8,8 @@ import { usePathname, useRouter } from 'next/navigation'
 export interface Profile {
   id: string
   display_name: string | null
-  first_name: string | null
-  home_city: string | null
+  company: string | null
+  role: string | null
   created_at: string
   updated_at: string
 }
@@ -35,33 +35,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = getSupabaseBrowserClient()
 
   const isProfileComplete = Boolean(
-    profile?.first_name && 
-    profile.first_name.trim() !== '' && 
-    profile?.home_city && 
-    profile.home_city.trim() !== ''
+    profile?.display_name &&
+    profile.display_name.trim() !== '' &&
+    profile?.company &&
+    profile.company.trim() !== ''
   )
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id,display_name,company,role,created_at,updated_at')
         .eq('id', userId)
         .single()
 
       if (error) {
         // Profile might not exist yet, create it
         if (error.code === 'PGRST116') {
-          const { data: newProfile, error: createError } = await supabase
+          await supabase.from('profiles').upsert({ id: userId }, { onConflict: 'id' })
+          const { data: newProfile } = await supabase
             .from('profiles')
-            .insert({ id: userId })
-            .select()
+            .select('id,display_name,company,role,created_at,updated_at')
+            .eq('id', userId)
             .single()
-
-          if (!createError && newProfile) {
-            setProfile(newProfile)
-            return newProfile
-          }
+          if (newProfile) setProfile(newProfile)
+          return newProfile
         }
         console.error('Error fetching profile:', error)
         return null
@@ -167,12 +165,12 @@ export function useGatedAction() {
     const encodedNext = encodeURIComponent(safeNext)
 
     if (!user) {
-      router.push(`/signup?next=${encodedNext}`)
+      router.push(`/sign-in?next=${encodedNext}`)
       return false
     }
 
     if (!isProfileComplete) {
-      router.push(`/account?onboarding=1&next=${encodedNext}`)
+      router.push(`/profile?onboarding=1&next=${encodedNext}`)
       return false
     }
 

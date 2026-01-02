@@ -1,14 +1,11 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { BrandMark } from '@/components/BrandMark'
-import { Button } from '@/components/ui/button'
+import { useState, useEffect } from 'react'
 import { AddressAutocomplete, type AddressResult } from '@/components/AddressAutocomplete'
-import { SiteSistersMark } from '@/components/SiteSistersMark'
-import { ProfileModal } from '@/components/ProfileModal'
-import { ProfilePill, type LocalProfile } from '@/components/ProfilePill'
 import { MapPin, Target, X, ChevronLeft, ChevronRight, Upload, Loader2, Building2, Lock } from 'lucide-react'
 import { useGatedAction, useAuth } from '@/contexts/AuthContext'
+import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { Navbar } from '@/components/Navbar'
 
 // Types based on database schema
 interface PosterProfile {
@@ -27,8 +24,7 @@ interface ListingPhoto {
 
 interface Listing {
   id: string
-  user_id: string
-  poster_profile_id: string | null
+  owner_id: string
   title: string | null
   city: string
   area: string | null
@@ -44,23 +40,15 @@ interface Listing {
   lng: number | null
   is_active: boolean
   created_at: string
-  // Private field - only visible to owner
-  full_address?: string | null
-  is_owner?: boolean
   // Joined data
-  poster_profiles?: PosterProfile | null
+  profiles?: PosterProfile | null
   listing_photos?: ListingPhoto[]
   // Legacy fields for mock data compatibility
   cover_photo_url?: string | null
   photo_urls?: string[] | null
-  profiles?: {
-    display_name: string
-  }
 }
 
-// Supabase client (anon key - safe for client-side)
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
 // Get public URL for a storage path
 function getPhotoUrl(storagePath: string): string {
@@ -73,171 +61,34 @@ async function fetchListings(filters: {
   rentMax?: number
   roomType?: string
 }): Promise<Listing[]> {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    // Return mock data if Supabase not configured
-    return getMockListings()
-  }
+  const supabase = getSupabaseBrowserClient()
 
-  let url = `${SUPABASE_URL}/rest/v1/listings?select=*,poster_profiles(*),listing_photos(*)&is_active=eq.true&order=created_at.desc`
-  
+  let query = supabase
+    .from('listings')
+    .select('*,profiles(display_name,company,role),listing_photos(*)')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+
   if (filters.city) {
-    url += `&city=ilike.*${filters.city}*`
+    query = query.ilike('city', `%${filters.city}%`)
   }
   if (filters.rentMax) {
-    url += `&rent_min=lte.${filters.rentMax}`
+    query = query.lte('rent_min', filters.rentMax)
   }
   if (filters.roomType && filters.roomType !== 'all') {
-    url += `&room_type=eq.${filters.roomType}`
+    query = query.eq('room_type', filters.roomType)
   }
 
-  try {
-    const res = await fetch(url, {
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      },
-    })
-    if (!res.ok) throw new Error('Failed to fetch')
-    const data = await res.json()
-    
-    // Sort photos by sort_order
-    return data.map((listing: Listing) => ({
-      ...listing,
-      listing_photos: listing.listing_photos?.sort((a, b) => a.sort_order - b.sort_order) || [],
-    }))
-  } catch {
-    return getMockListings()
+  const { data, error } = await query
+  if (error || !data) {
+    console.error('Error fetching listings:', error)
+    return []
   }
-}
 
-function getMockListings(): Listing[] {
-  return [
-    {
-      id: '1',
-      user_id: 'user1',
-      poster_profile_id: 'profile1',
-      title: 'Cozy room near Intel Ocotillo',
-      city: 'Phoenix, AZ',
-      area: 'Downtown',
-      rent_min: 800,
-      rent_max: 1000,
-      move_in: '2026-02-01',
-      room_type: 'private_room',
-      commute_area: 'Intel Ocotillo',
-      details: 'Looking for a clean, quiet roommate. I work early shifts at the data center construction site. Non-smoker preferred.',
-      tags: ['quiet', 'early-riser', 'non-smoker'],
-      place_id: null,
-      lat: null,
-      lng: null,
-      is_active: true,
-      created_at: '2026-01-15T10:00:00Z',
-      poster_profiles: {
-        id: 'profile1',
-        display_name: 'Sarah M.',
-        company: 'Turner Construction',
-        role: 'Electrician',
-      },
-      cover_photo_url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
-      photo_urls: [
-        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
-        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
-      ],
-    },
-    {
-      id: '2',
-      user_id: 'user2',
-      poster_profile_id: 'profile2',
-      title: 'Shared space near Samsung Taylor',
-      city: 'Austin, TX',
-      area: 'Round Rock',
-      rent_min: 700,
-      rent_max: 900,
-      move_in: '2026-01-20',
-      room_type: 'shared_room',
-      commute_area: 'Samsung Taylor',
-      details: 'Friendly electrician looking to share a 2BR apartment near the fab site. Flexible on move-in date.',
-      tags: ['friendly', 'flexible'],
-      place_id: null,
-      lat: null,
-      lng: null,
-      is_active: true,
-      created_at: '2026-01-14T15:30:00Z',
-      poster_profiles: {
-        id: 'profile2',
-        display_name: 'Jessica R.',
-        company: 'Skanska',
-        role: 'Project Manager',
-      },
-      cover_photo_url: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800',
-      photo_urls: [
-        'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800',
-        'https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?w=800',
-      ],
-    },
-    {
-      id: '3',
-      user_id: 'user3',
-      poster_profile_id: 'profile3',
-      title: 'Private room in New Albany',
-      city: 'Columbus, OH',
-      area: 'New Albany',
-      rent_min: 650,
-      rent_max: 850,
-      move_in: '2026-02-15',
-      room_type: 'private_room',
-      commute_area: 'Intel Ohio',
-      details: 'HVAC tech on a 6-month project. Looking for month-to-month or short-term lease. I keep odd hours but am respectful.',
-      tags: ['short-term', 'flexible-hours'],
-      place_id: null,
-      lat: null,
-      lng: null,
-      is_active: true,
-      created_at: '2026-01-13T09:00:00Z',
-      poster_profiles: {
-        id: 'profile3',
-        display_name: 'Amanda K.',
-        company: 'Mortenson',
-        role: 'HVAC Tech',
-      },
-      cover_photo_url: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800',
-      photo_urls: [
-        'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800',
-        'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800',
-        'https://images.unsplash.com/photo-1556909172-54557c7e4fb7?w=800',
-      ],
-    },
-    {
-      id: '4',
-      user_id: 'user4',
-      poster_profile_id: 'profile4',
-      title: 'Entire 1BR near TSMC Arizona',
-      city: 'Phoenix, AZ',
-      area: 'Chandler',
-      rent_min: 900,
-      rent_max: 1100,
-      move_in: '2026-03-01',
-      room_type: 'entire_place',
-      commute_area: 'TSMC Arizona',
-      details: 'Have a whole 1BR available in a quiet complex. Perfect for someone who values privacy. Pool and gym access.',
-      tags: ['privacy', 'amenities'],
-      place_id: null,
-      lat: null,
-      lng: null,
-      is_active: true,
-      created_at: '2026-01-12T14:00:00Z',
-      poster_profiles: {
-        id: 'profile4',
-        display_name: 'Michelle T.',
-        company: 'Hensel Phelps',
-        role: 'Site Supervisor',
-      },
-      cover_photo_url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
-      photo_urls: [
-        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
-        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
-      ],
-    },
-  ]
+  return data.map((listing: Listing) => ({
+    ...listing,
+    listing_photos: listing.listing_photos?.sort((a, b) => a.sort_order - b.sort_order) || [],
+  }))
 }
 
 function getListingCoverPhotoUrl(listing: Listing): string | null {
@@ -271,17 +122,12 @@ function getListingPhotoCount(listing: Listing): number {
 }
 
 function getDisplayName(listing: Listing): string {
-  if (listing.poster_profiles?.display_name) {
-    return listing.poster_profiles.display_name
-  }
-  if (listing.profiles?.display_name) {
-    return listing.profiles.display_name
-  }
+  if (listing.profiles?.display_name) return listing.profiles.display_name
   return 'Anonymous'
 }
 
 function getCompany(listing: Listing): string | null {
-  return listing.poster_profiles?.company || null
+  return listing.profiles?.company || null
 }
 
 // Room type display helper
@@ -299,37 +145,6 @@ function formatDate(dateStr: string | null): string {
   if (!dateStr) return 'Flexible'
   const date = new Date(dateStr)
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-// No-auth profile persistence (design page only)
-const LOCAL_PROFILE_KEY = 'sitesisters_profile'
-
-function readLocalProfile(): LocalProfile | null {
-  try {
-    const raw = localStorage.getItem(LOCAL_PROFILE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as Partial<LocalProfile> | null
-    if (!parsed || typeof parsed !== 'object') return null
-    if (typeof parsed.displayName !== 'string' || typeof parsed.company !== 'string') return null
-    const displayName = parsed.displayName.trim()
-    const company = parsed.company.trim()
-    const role = typeof parsed.role === 'string' ? parsed.role.trim() : undefined
-    if (!displayName || !company) return null
-    return { displayName, company, role: role || undefined }
-  } catch {
-    return null
-  }
-}
-
-function writeLocalProfile(profile: LocalProfile) {
-  localStorage.setItem(
-    LOCAL_PROFILE_KEY,
-    JSON.stringify({
-      displayName: profile.displayName,
-      company: profile.company,
-      role: profile.role,
-    })
-  )
 }
 
 // Photo Carousel Component
@@ -641,7 +456,7 @@ export default function DesignPage() {
   
   // Auth hooks for gating actions
   const { gateAction } = useGatedAction()
-  const { user } = useAuth()
+  useAuth()
   
   // Filters
   const [cityFilter, setCityFilter] = useState('')
@@ -652,12 +467,6 @@ export default function DesignPage() {
   const [showPostModal, setShowPostModal] = useState(false)
   const [showIntroModal, setShowIntroModal] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
-
-  // No-auth local profile (header + optional prefill)
-  const [localProfile, setLocalProfile] = useState<LocalProfile | null>(null)
-  const [showProfileModal, setShowProfileModal] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
-  const toastTimeoutRef = useRef<number | null>(null)
   
   // Form states
   const [introMessage, setIntroMessage] = useState('')
@@ -665,12 +474,6 @@ export default function DesignPage() {
   const [reportDetails, setReportDetails] = useState('')
   
   // New listing form - organized by sections
-  const [newListingProfile, setNewListingProfile] = useState({
-    displayName: '',
-    company: '',
-    role: '',
-  })
-  
   const [newListingLocation, setNewListingLocation] = useState({
     address: '',
     city: '',
@@ -693,27 +496,10 @@ export default function DesignPage() {
   
   const [newListingPhotos, setNewListingPhotos] = useState<string[]>([])
   
-  const [newListingContact, setNewListingContact] = useState({
-    contactPreference: 'email',
-    contactValue: '',
-  })
-  
   const [honeypot, setHoneypot] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    const existing = readLocalProfile()
-    setLocalProfile(existing)
-    if (existing) {
-      setNewListingProfile((prev) => {
-        if (prev.displayName || prev.company || prev.role) return prev
-        return {
-          displayName: existing.displayName,
-          company: existing.company,
-          role: existing.role || '',
-        }
-      })
-    }
     loadListings()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -731,34 +517,6 @@ export default function DesignPage() {
 
   function handleSearch() {
     loadListings()
-  }
-
-  function saveLocalProfile(profile: LocalProfile) {
-    writeLocalProfile(profile)
-    setLocalProfile(profile)
-    setNewListingProfile((prev) => ({
-      ...prev,
-      displayName: profile.displayName,
-      company: profile.company,
-      role: profile.role || '',
-    }))
-  }
-
-  function showToastMessage(message: string) {
-    setToast(message)
-    if (toastTimeoutRef.current) {
-      window.clearTimeout(toastTimeoutRef.current)
-    }
-    toastTimeoutRef.current = window.setTimeout(() => setToast(null), 3200)
-  }
-
-  function scrollToListings() {
-    const el = document.getElementById('listings') || document.getElementById('browse')
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      return
-    }
-    showToastMessage('Could not find the listings section on this page.')
   }
 
   function handlePostListingClick() {
@@ -795,13 +553,6 @@ export default function DesignPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          profile: {
-            displayName: newListingProfile.displayName,
-            company: newListingProfile.company,
-            role: newListingProfile.role || undefined,
-            contactPreference: newListingContact.contactPreference,
-            contactValue: newListingContact.contactValue,
-          },
           listing: {
             title: newListingDetails.title || undefined,
             city: newListingLocation.city,
@@ -812,11 +563,11 @@ export default function DesignPage() {
             roomType: newListingDetails.roomType,
             commuteArea: newListingDetails.commuteArea || undefined,
             tags: newListingDetails.tags ? newListingDetails.tags.split(',').map(t => t.trim()).filter(Boolean) : undefined,
-            bio: newListingDetails.bio || undefined,
+            details: newListingDetails.bio || undefined,
             placeId: newListingLocation.placeId || undefined,
             lat: newListingLocation.lat || undefined,
             lng: newListingLocation.lng || undefined,
-            // Store full address privately - only owner can see this
+            // Stored (still treated as private by UI)
             fullAddress: newListingLocation.address || undefined,
           },
           photoPaths: newListingPhotos.length > 0 ? newListingPhotos : undefined,
@@ -831,29 +582,13 @@ export default function DesignPage() {
         return
       }
 
-      // Persist local profile (no auth) so the header becomes populated immediately
-      const postedProfile: LocalProfile = {
-        displayName: newListingProfile.displayName.trim(),
-        company: newListingProfile.company.trim(),
-        role: newListingProfile.role.trim() ? newListingProfile.role.trim() : undefined,
-      }
-      if (postedProfile.displayName && postedProfile.company) {
-        try {
-          saveLocalProfile(postedProfile)
-        } catch {
-          // ignore localStorage failures (private mode, quota, etc.)
-        }
-      }
-
       alert('Listing posted successfully!')
       setShowPostModal(false)
       
       // Reset form
-      setNewListingProfile({ displayName: '', company: '', role: '' })
       setNewListingLocation({ address: '', city: '', area: '', placeId: '', lat: null, lng: null })
       setNewListingDetails({ title: '', roomType: 'private_room', rentMin: '', rentMax: '', moveIn: '', commuteArea: '', tags: '', bio: '' })
       setNewListingPhotos([])
-      setNewListingContact({ contactPreference: 'email', contactValue: '' })
       setHoneypot('')
       
       loadListings()
@@ -884,57 +619,7 @@ export default function DesignPage() {
 
   return (
     <div style={styles.page}>
-      {/* Header (design-page, no-auth profile UI) */}
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950 px-4 py-4 text-white/90">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <a href="/design" className="flex items-center gap-2">
-            <BrandMark />
-            <span className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-              SiteSisters
-            </span>
-          </a>
-
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={handlePostListingClick}
-              className="bg-teal-600 px-3 text-sm text-white hover:bg-teal-500 focus-visible:ring-2 focus-visible:ring-teal-400 sm:px-5 sm:text-base"
-            >
-              <span className="hidden sm:inline">+ Post Listing</span>
-              <span className="sm:hidden">+ Post</span>
-            </Button>
-
-            {localProfile ? (
-              <ProfilePill
-                profile={localProfile}
-                onEditProfile={() => setShowProfileModal(true)}
-                onGoToListings={scrollToListings}
-                onSafety={() =>
-                  showToastMessage('Safety: use “Report” on any listing; full addresses stay private by default.')
-                }
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowProfileModal(true)}
-                className="inline-flex h-11 items-center gap-3 rounded-2xl bg-white/10 px-3 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
-              >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
-                  <SiteSistersMark className="h-5 w-5" />
-                </span>
-                <span className="hidden flex-col text-left sm:flex">
-                  <span className="text-sm font-semibold leading-tight text-white">
-                    Create profile
-                  </span>
-                  <span className="text-xs text-white/70">Add your name + company</span>
-                </span>
-                <span className="ml-0.5 text-xs text-white/80" aria-hidden="true">
-                  ▼
-                </span>
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
+      <Navbar onPostListing={handlePostListingClick} />
 
       {/* Hero */}
       <section style={styles.hero}>
@@ -1150,19 +835,7 @@ export default function DesignPage() {
                 )}
               </div>
 
-              {/* Full Address - Only visible to the listing owner */}
-              {user && selectedListing.user_id === user.id && selectedListing.full_address && (
-                <div style={styles.privateAddressBlock}>
-                  <div style={styles.privateAddressHeader}>
-                    <Lock size={14} />
-                    <span>Your Private Address</span>
-                  </div>
-                  <p style={styles.privateAddressText}>{selectedListing.full_address}</p>
-                  <p style={styles.privateAddressNote}>
-                    Only you can see this. Others see only the city and neighborhood.
-                  </p>
-                </div>
-              )}
+              {/* Full address stays private (not shown in listing details). */}
 
               {selectedListing.tags && selectedListing.tags.length > 0 && (
                 <div style={styles.tagsContainer}>
@@ -1191,8 +864,8 @@ export default function DesignPage() {
                   {getCompany(selectedListing) && (
                     <span style={styles.profileCompany}>{getCompany(selectedListing)}</span>
                   )}
-                  {selectedListing.poster_profiles?.role && (
-                    <span style={styles.profileRole}>{selectedListing.poster_profiles.role}</span>
+                  {selectedListing.profiles?.role && (
+                    <span style={styles.profileRole}>{selectedListing.profiles.role}</span>
                   )}
                 </div>
               </div>
@@ -1237,43 +910,16 @@ export default function DesignPage() {
                 autoComplete="off"
               />
 
-              {/* Section 1: About You */}
+              {/* Section 1: Your Profile */}
               <div style={styles.formSection}>
-                <h3 style={styles.formSectionTitle}>About You</h3>
-                <div style={styles.formRow}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Your Name *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Sarah M."
-                      value={newListingProfile.displayName}
-                      onChange={(e) => setNewListingProfile({ ...newListingProfile, displayName: e.target.value })}
-                      style={styles.formInput}
-                    />
-                  </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Company *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Turner Construction"
-                      value={newListingProfile.company}
-                      onChange={(e) => setNewListingProfile({ ...newListingProfile, company: e.target.value })}
-                      style={styles.formInput}
-                    />
-                  </div>
-                </div>
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Role/Title</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Electrician, Site Supervisor"
-                    value={newListingProfile.role}
-                    onChange={(e) => setNewListingProfile({ ...newListingProfile, role: e.target.value })}
-                    style={styles.formInput}
-                  />
-                </div>
+                <h3 style={styles.formSectionTitle}>Your Profile</h3>
+                <p style={styles.formHint}>
+                  Listings use your SiteSisters profile (display name, company, role). Update it on the{' '}
+                  <a href="/profile" style={{ color: '#0d9488', fontWeight: 600, textDecoration: 'none' }}>
+                    Profile
+                  </a>{' '}
+                  page.
+                </p>
               </div>
 
               {/* Section 2: Location */}
@@ -1421,51 +1067,6 @@ export default function DesignPage() {
                 />
               </div>
 
-              {/* Section 5: Contact (Private) */}
-              <div style={styles.formSection}>
-                <h3 style={styles.formSectionTitle}>Contact Info (Private)</h3>
-                <p style={styles.formHint}>
-                  This information is only shared when you accept an intro request.
-                </p>
-                <div style={styles.formRow}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Contact Method *</label>
-                    <select
-                      required
-                      value={newListingContact.contactPreference}
-                      onChange={(e) => setNewListingContact({ ...newListingContact, contactPreference: e.target.value })}
-                      style={styles.formSelect}
-                    >
-                      <option value="email">Email</option>
-                      <option value="phone">Phone</option>
-                      <option value="instagram">Instagram</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>
-                      {newListingContact.contactPreference === 'email' ? 'Email Address' :
-                       newListingContact.contactPreference === 'phone' ? 'Phone Number' :
-                       newListingContact.contactPreference === 'instagram' ? 'Instagram Handle' :
-                       'Contact Info'} *
-                    </label>
-                    <input
-                      type={newListingContact.contactPreference === 'email' ? 'email' : 'text'}
-                      required
-                      placeholder={
-                        newListingContact.contactPreference === 'email' ? 'you@example.com' :
-                        newListingContact.contactPreference === 'phone' ? '(555) 555-5555' :
-                        newListingContact.contactPreference === 'instagram' ? '@username' :
-                        'Your contact info'
-                      }
-                      value={newListingContact.contactValue}
-                      onChange={(e) => setNewListingContact({ ...newListingContact, contactValue: e.target.value })}
-                      style={styles.formInput}
-                    />
-                  </div>
-                </div>
-              </div>
-
               <button 
                 type="submit" 
                 style={styles.submitButton}
@@ -1553,23 +1154,6 @@ export default function DesignPage() {
               </button>
             </form>
           </div>
-        </div>
-      )}
-
-      <ProfileModal
-        open={showProfileModal}
-        initialProfile={localProfile}
-        onClose={() => setShowProfileModal(false)}
-        onSave={(profile) => {
-          saveLocalProfile(profile)
-          setShowProfileModal(false)
-          showToastMessage('Profile saved on this device.')
-        }}
-      />
-
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 z-[500] w-[min(92vw,520px)] -translate-x-1/2 rounded-2xl border border-white/10 bg-slate-950/95 px-4 py-3 text-sm text-white shadow-xl backdrop-blur">
-          {toast}
         </div>
       )}
 

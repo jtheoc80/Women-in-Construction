@@ -22,21 +22,21 @@ export function AccountProfileForm({ initialProfile }: { initialProfile: Profile
   const supabase = getSupabaseBrowserClient()
   const { user, refreshProfile } = useAuth()
 
-  const [firstName, setFirstName] = useState(initialProfile?.first_name || '')
-  const [homeCity, setHomeCity] = useState(initialProfile?.home_city || '')
+  const [displayName, setDisplayName] = useState(initialProfile?.display_name || '')
+  const [company, setCompany] = useState(initialProfile?.company || '')
+  const [role, setRole] = useState(initialProfile?.role || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
-  const displayNamePreview = useMemo(() => {
-    const first = firstName.trim()
-    return first || 'New user'
-  }, [firstName])
+  const isCompletePreview = useMemo(() => {
+    return Boolean(displayName.trim() && company.trim())
+  }, [displayName, company])
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) {
-      router.push(`/signup?next=${encodeURIComponent('/account')}`)
+      router.push(`/sign-in?next=${encodeURIComponent('/profile')}`)
       return
     }
 
@@ -46,15 +46,12 @@ export function AccountProfileForm({ initialProfile }: { initialProfile: Profile
 
     try {
       const payload = {
-        first_name: firstName.trim() || null,
-        home_city: homeCity.trim() || null,
-        display_name: (firstName.trim() || 'New user').trim(),
+        display_name: displayName.trim() || null,
+        company: company.trim() || null,
+        role: role.trim() || null,
       }
 
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update(payload)
-        .eq('id', user.id)
+      const { error: updateError } = await supabase.from('profiles').update(payload).eq('id', user.id)
 
       if (updateError) {
         setError(updateError.message)
@@ -64,8 +61,7 @@ export function AccountProfileForm({ initialProfile }: { initialProfile: Profile
       await refreshProfile()
       setSaved(true)
 
-      const complete = Boolean(payload.first_name && payload.home_city)
-      if (onboarding && complete && nextParam) {
+      if (onboarding && isCompletePreview && nextParam) {
         router.replace(nextParam)
       }
     } catch (err) {
@@ -82,35 +78,46 @@ export function AccountProfileForm({ initialProfile }: { initialProfile: Profile
         <h2 className="text-lg font-semibold text-slate-900">Profile</h2>
         {onboarding && (
           <p className="mt-1 text-sm text-slate-600">
-            Please complete your profile to post listings and request intros.
+            Please complete your profile to access the app.
           </p>
         )}
 
         <div className="mt-5 space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="first_name" className="text-slate-700">
-              First name
+            <Label htmlFor="display_name" className="text-slate-700">
+              Display name *
             </Label>
             <Input
-              id="first_name"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="Sarah"
+              id="display_name"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Sarah M."
+              required
             />
-            <p className="text-xs text-slate-500">
-              Display name: <strong className="text-slate-700">{displayNamePreview}</strong>
-            </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="home_city" className="text-slate-700">
-              Home base city
+            <Label htmlFor="company" className="text-slate-700">
+              Company *
             </Label>
             <Input
-              id="home_city"
-              value={homeCity}
-              onChange={(e) => setHomeCity(e.target.value)}
-              placeholder="Phoenix, AZ"
+              id="company"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              placeholder="Turner Construction"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="role" className="text-slate-700">
+              Role / title
+            </Label>
+            <Input
+              id="role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              placeholder="Electrician"
             />
           </div>
 
@@ -125,7 +132,7 @@ export function AccountProfileForm({ initialProfile }: { initialProfile: Profile
         </div>
 
         <p className="mt-4 text-xs text-slate-500">
-          Your email/phone are never shown publicly.
+          This is what other members see on your listings.
         </p>
       </div>
     </form>

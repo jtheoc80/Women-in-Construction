@@ -7,6 +7,19 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 // Primary domain for canonical redirects
 const PRIMARY_DOMAIN = 'sitesistersconstruction.com'
 
+function isPublicPath(pathname: string) {
+  // Public/auth pages
+  if (pathname === '/sign-in' || pathname === '/sign-up') return true
+  if (pathname.startsWith('/invite')) return true
+
+  // Route handlers should not be redirected by auth gating
+  if (pathname.startsWith('/api')) return true
+
+  // Static-ish common files (also covered by matcher, but keep safe)
+  if (pathname === '/favicon.ico') return true
+  return false
+}
+
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || ''
   
@@ -58,7 +71,17 @@ export async function middleware(request: NextRequest) {
   )
 
   // Refresh session if expired - required for Server Components
-  await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const pathname = request.nextUrl.pathname
+  if (!user && !isPublicPath(pathname)) {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = '/sign-in'
+    redirectUrl.searchParams.set('next', pathname)
+    return NextResponse.redirect(redirectUrl)
+  }
 
   return response
 }

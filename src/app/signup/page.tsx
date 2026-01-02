@@ -1,11 +1,6 @@
-import { Suspense } from 'react'
-import { SignupClient } from './signup-client'
+import { redirect } from 'next/navigation'
 
 export default function SignupPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
-      <SignupClient />
-    </Suspense>
-  )
+  redirect('/sign-in')
 }
 

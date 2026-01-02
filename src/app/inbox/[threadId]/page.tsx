@@ -11,7 +11,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ threadI
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect(`/signup?next=/inbox/${encodeURIComponent(threadId)}`)
+    redirect(`/sign-in?next=/inbox/${encodeURIComponent(threadId)}`)
   }
 
   const { data: thread } = await supabase

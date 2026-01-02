@@ -9,7 +9,7 @@ export default async function InboxPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect('/signup?next=/inbox')
+    redirect('/sign-in?next=/inbox')
   }
 
   const [pendingRequestsRes, threadsRes] = await Promise.all([
@@ -27,8 +27,9 @@ export default async function InboxPage() {
       .limit(50),
   ])
 
-  const pendingRequests = (pendingRequestsRes.data || []) as InboxPageData['pendingRequests']
-  const threads = (threadsRes.data || []) as InboxPageData['threads']
+  // PostgREST can return nested relations as arrays depending on FK shape; cast via unknown.
+  const pendingRequests = (pendingRequestsRes.data || []) as unknown as InboxPageData['pendingRequests']
+  const threads = (threadsRes.data || []) as unknown as InboxPageData['threads']
 
   const requestUserIds = pendingRequests.map((r) => r.from_user_id)
   const threadUserIds = threads.flatMap((t) => t.thread_participants.map((p) => p.user_id))
