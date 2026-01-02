@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Navbar } from '@/components/Navbar'
 import { AddressAutocomplete, type AddressResult } from '@/components/AddressAutocomplete'
 import { MapPin, Target, X, ChevronLeft, ChevronRight, Upload, Loader2, Building2 } from 'lucide-react'
@@ -692,9 +692,53 @@ export default function DesignPage() {
     })
   }
 
+  function validateContactValue(preference: string, value: string): { isValid: boolean; error?: string } {
+    if (!value.trim()) {
+      return { isValid: false, error: 'Contact information is required' }
+    }
+
+    switch (preference) {
+      case 'email': {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(value)) {
+          return { isValid: false, error: 'Please enter a valid email address' }
+        }
+        break
+      }
+      case 'phone': {
+        // More strict phone validation: must have at least one digit, and only valid phone chars
+        const phoneRegex = /^[0-9\s\-()]+$/
+        const digitCount = value.replace(/\D/g, '').length
+        if (!phoneRegex.test(value) || digitCount < 10 || digitCount > 15) {
+          return { isValid: false, error: 'Please enter a valid phone number (10-15 digits)' }
+        }
+        break
+      }
+      case 'instagram':
+        if (!value.startsWith('@')) {
+          return { isValid: false, error: 'Instagram handle should start with @' }
+        }
+        break
+      default:
+        if (value.trim().length < 3) {
+          return { isValid: false, error: 'Contact information must be at least 3 characters' }
+        }
+    }
+
+    return { isValid: true }
+  }
+
   async function handlePostListing(e: React.FormEvent) {
     e.preventDefault()
     setIsSubmitting(true)
+
+    // Validate contact information matches preference type
+    const validation = validateContactValue(newListingContact.contactPreference, newListingContact.contactValue)
+    if (!validation.isValid) {
+      alert(validation.error)
+      setIsSubmitting(false)
+      return
+    }
 
     try {
       const response = await fetch('/api/listings', {
@@ -1262,7 +1306,7 @@ export default function DesignPage() {
                     <select
                       required
                       value={newListingContact.contactPreference}
-                      onChange={(e) => setNewListingContact({ ...newListingContact, contactPreference: e.target.value })}
+                      onChange={(e) => setNewListingContact({ ...newListingContact, contactPreference: e.target.value, contactValue: '' })}
                       style={styles.formSelect}
                     >
                       <option value="email">Email</option>
