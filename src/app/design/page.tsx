@@ -1,8 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Navbar } from '@/components/Navbar'
+import { useState, useEffect, useRef } from 'react'
+import { BrandMark } from '@/components/BrandMark'
+import { Button } from '@/components/ui/button'
 import { AddressAutocomplete, type AddressResult } from '@/components/AddressAutocomplete'
+import { SiteSistersMark } from '@/components/SiteSistersMark'
+import { ProfileModal } from '@/components/ProfileModal'
+import { ProfilePill, type LocalProfile } from '@/components/ProfilePill'
 import { MapPin, Target, X, ChevronLeft, ChevronRight, Upload, Loader2, Building2, Lock } from 'lucide-react'
 import { useGatedAction, useAuth } from '@/contexts/AuthContext'
 
@@ -295,6 +299,37 @@ function formatDate(dateStr: string | null): string {
   if (!dateStr) return 'Flexible'
   const date = new Date(dateStr)
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+// No-auth profile persistence (design page only)
+const LOCAL_PROFILE_KEY = 'sitesisters_profile'
+
+function readLocalProfile(): LocalProfile | null {
+  try {
+    const raw = localStorage.getItem(LOCAL_PROFILE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<LocalProfile> | null
+    if (!parsed || typeof parsed !== 'object') return null
+    if (typeof parsed.displayName !== 'string' || typeof parsed.company !== 'string') return null
+    const displayName = parsed.displayName.trim()
+    const company = parsed.company.trim()
+    const role = typeof parsed.role === 'string' ? parsed.role.trim() : undefined
+    if (!displayName || !company) return null
+    return { displayName, company, role: role || undefined }
+  } catch {
+    return null
+  }
+}
+
+function writeLocalProfile(profile: LocalProfile) {
+  localStorage.setItem(
+    LOCAL_PROFILE_KEY,
+    JSON.stringify({
+      displayName: profile.displayName,
+      company: profile.company,
+      role: profile.role,
+    })
+  )
 }
 
 // Photo Carousel Component
@@ -617,6 +652,12 @@ export default function DesignPage() {
   const [showPostModal, setShowPostModal] = useState(false)
   const [showIntroModal, setShowIntroModal] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
+
+  // No-auth local profile (header + optional prefill)
+  const [localProfile, setLocalProfile] = useState<LocalProfile | null>(null)
+  const [showProfileModal, setShowProfileModal] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+  const toastTimeoutRef = useRef<number | null>(null)
   
   // Form states
   const [introMessage, setIntroMessage] = useState('')
@@ -661,6 +702,18 @@ export default function DesignPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
+    const existing = readLocalProfile()
+    setLocalProfile(existing)
+    if (existing) {
+      setNewListingProfile((prev) => {
+        if (prev.displayName || prev.company || prev.role) return prev
+        return {
+          displayName: existing.displayName,
+          company: existing.company,
+          role: existing.role || '',
+        }
+      })
+    }
     loadListings()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -678,6 +731,34 @@ export default function DesignPage() {
 
   function handleSearch() {
     loadListings()
+  }
+
+  function saveLocalProfile(profile: LocalProfile) {
+    writeLocalProfile(profile)
+    setLocalProfile(profile)
+    setNewListingProfile((prev) => ({
+      ...prev,
+      displayName: profile.displayName,
+      company: profile.company,
+      role: profile.role || '',
+    }))
+  }
+
+  function showToastMessage(message: string) {
+    setToast(message)
+    if (toastTimeoutRef.current) {
+      window.clearTimeout(toastTimeoutRef.current)
+    }
+    toastTimeoutRef.current = window.setTimeout(() => setToast(null), 3200)
+  }
+
+  function scrollToListings() {
+    const el = document.getElementById('listings') || document.getElementById('browse')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return
+    }
+    showToastMessage('Could not find the listings section on this page.')
   }
 
   function handlePostListingClick() {
@@ -750,6 +831,20 @@ export default function DesignPage() {
         return
       }
 
+      // Persist local profile (no auth) so the header becomes populated immediately
+      const postedProfile: LocalProfile = {
+        displayName: newListingProfile.displayName.trim(),
+        company: newListingProfile.company.trim(),
+        role: newListingProfile.role.trim() ? newListingProfile.role.trim() : undefined,
+      }
+      if (postedProfile.displayName && postedProfile.company) {
+        try {
+          saveLocalProfile(postedProfile)
+        } catch {
+          // ignore localStorage failures (private mode, quota, etc.)
+        }
+      }
+
       alert('Listing posted successfully!')
       setShowPostModal(false)
       
@@ -789,8 +884,57 @@ export default function DesignPage() {
 
   return (
     <div style={styles.page}>
-      {/* Header with Navbar */}
-      <Navbar onPostListing={handlePostListingClick} />
+      {/* Header (design-page, no-auth profile UI) */}
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950 px-4 py-4 text-white/90">
+        <div className="mx-auto flex max-w-6xl items-center justify-between">
+          <a href="/design" className="flex items-center gap-2">
+            <BrandMark />
+            <span className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+              SiteSisters
+            </span>
+          </a>
+
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handlePostListingClick}
+              className="bg-teal-600 px-3 text-sm text-white hover:bg-teal-500 focus-visible:ring-2 focus-visible:ring-teal-400 sm:px-5 sm:text-base"
+            >
+              <span className="hidden sm:inline">+ Post Listing</span>
+              <span className="sm:hidden">+ Post</span>
+            </Button>
+
+            {localProfile ? (
+              <ProfilePill
+                profile={localProfile}
+                onEditProfile={() => setShowProfileModal(true)}
+                onGoToListings={scrollToListings}
+                onSafety={() =>
+                  showToastMessage('Safety: use “Report” on any listing; full addresses stay private by default.')
+                }
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowProfileModal(true)}
+                className="inline-flex h-11 items-center gap-3 rounded-2xl bg-white/10 px-3 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
+                  <SiteSistersMark className="h-5 w-5" />
+                </span>
+                <span className="hidden flex-col text-left sm:flex">
+                  <span className="text-sm font-semibold leading-tight text-white">
+                    Create profile
+                  </span>
+                  <span className="text-xs text-white/70">Add your name + company</span>
+                </span>
+                <span className="ml-0.5 text-xs text-white/80" aria-hidden="true">
+                  ▼
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
 
       {/* Hero */}
       <section style={styles.hero}>
@@ -1409,6 +1553,23 @@ export default function DesignPage() {
               </button>
             </form>
           </div>
+        </div>
+      )}
+
+      <ProfileModal
+        open={showProfileModal}
+        initialProfile={localProfile}
+        onClose={() => setShowProfileModal(false)}
+        onSave={(profile) => {
+          saveLocalProfile(profile)
+          setShowProfileModal(false)
+          showToastMessage('Profile saved on this device.')
+        }}
+      />
+
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 z-[500] w-[min(92vw,520px)] -translate-x-1/2 rounded-2xl border border-white/10 bg-slate-950/95 px-4 py-3 text-sm text-white shadow-xl backdrop-blur">
+          {toast}
         </div>
       )}
 
