@@ -71,7 +71,11 @@ export async function middleware(request: NextRequest) {
   // Prefetch requests should pass through without triggering auth redirects
   const isPrefetch = isPrefetchOrRSCRequest(request)
   if (isPrefetch) {
-    return NextResponse.next()
+    return NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    })
   }
 
   let response = NextResponse.next({
