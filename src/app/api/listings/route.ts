@@ -166,7 +166,7 @@ export async function GET() {
       .from('listings')
       .select(`
         *,
-        poster_profiles!poster_profile_id (
+        poster_profiles (
           id,
           display_name,
           company,
