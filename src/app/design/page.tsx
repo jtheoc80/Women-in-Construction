@@ -808,10 +808,6 @@ export default function DesignPage() {
             Browse listings
           </a>
         </div>
-
-        <p style={styles.heroMicrocopy}>
-          No public contact info. Details shared only if you accept.
-        </p>
       </section>
 
       {/* Hero follow-on */}
@@ -1408,7 +1404,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   hero: {
     background: 'linear-gradient(180deg, #020617 0%, #0f172a 100%)',
-    padding: '48px 24px 40px',
+    padding: '48px 24px 32px',
     textAlign: 'center',
   },
   heroTitle: {
@@ -1468,15 +1464,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: '1px solid rgba(255,255,255,0.2)',
     transition: 'background 0.2s',
     minWidth: '160px',
-  },
-  heroMicrocopy: {
-    marginTop: '16px',
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: '0.8rem',
-    maxWidth: '420px',
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    lineHeight: 1.4,
   },
   featureSection: {
     background: '#f8fafc',
