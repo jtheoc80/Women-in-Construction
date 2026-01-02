@@ -114,13 +114,13 @@ export function SiteLogo({
   return (
     <span
       className={cn(
-        'inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white ring-1 ring-black/10',
+        'inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white ring-1 ring-black/10',
         className
       )}
       role="img"
       aria-label={label}
     >
-      <SiteLogoMark className="h-7 w-7" title={label} />
+      <SiteLogoMark className="h-10 w-10" title={label} />
     </span>
   )
 }
