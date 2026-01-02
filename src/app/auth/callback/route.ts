@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
     console.log('[Auth Callback] Success! Redirecting to:', safeNext)
   }
 
-  // Use the site URL for production redirects, origin for local dev
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || origin
-  return NextResponse.redirect(new URL(safeNext, baseUrl))
+  // Always use the request origin to support custom domains
+  // This ensures users stay on whatever domain they're currently using
+  return NextResponse.redirect(new URL(safeNext, origin))
 }

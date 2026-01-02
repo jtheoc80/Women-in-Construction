@@ -4,8 +4,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-// Primary domain for canonical redirects
-const PRIMARY_DOMAIN = 'sitesistersconstruction.com'
+// Primary domain for canonical redirects - configurable via env var
+// Set NEXT_PUBLIC_PRIMARY_DOMAIN to your custom domain to enable canonical redirects
+const PRIMARY_DOMAIN = process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'sitesistersconstruction.com'
 
 // Routes that require authentication
 // Protected routes redirect to /signup if not authenticated

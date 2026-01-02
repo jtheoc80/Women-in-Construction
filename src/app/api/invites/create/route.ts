@@ -65,10 +65,8 @@ export async function POST(req: NextRequest) {
         existingInvite.uses < existingInvite.max_uses
 
       if (isUsable) {
-        // Get origin from request headers or fall back to env
-        const origin = req.headers.get('origin') || 
-          process.env.NEXT_PUBLIC_APP_URL || 
-          'http://localhost:3000'
+        // Derive origin from the request URL to support custom domains
+        const origin = new URL(req.url).origin
         
         return NextResponse.json({
           code: existingInvite.code,
@@ -102,10 +100,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Get origin from request headers or fall back to env
-    const origin = req.headers.get('origin') || 
-      process.env.NEXT_PUBLIC_APP_URL || 
-      'http://localhost:3000'
+    // Derive origin from the request URL to support custom domains
+    const origin = new URL(req.url).origin
 
     return NextResponse.json({
       code: newInvite.code,
@@ -159,10 +155,8 @@ export async function GET(req: NextRequest) {
     const isUsable = existingInvite.max_uses === null || 
       existingInvite.uses < existingInvite.max_uses
 
-    // Get origin from request headers or fall back to env
-    const origin = req.headers.get('origin') || 
-      process.env.NEXT_PUBLIC_APP_URL || 
-      'http://localhost:3000'
+    // Derive origin from the request URL to support custom domains
+    const origin = new URL(req.url).origin
 
     return NextResponse.json({
       invite: {
