@@ -86,23 +86,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(signInUrl)
   }
 
-  // Handle auth routes - redirect to /design if already authenticated
-  if (isAuthRoute(pathname) && user) {
-    const next = request.nextUrl.searchParams.get('next')
-    const redirectUrl = next && next.startsWith('/') ? next : '/design'
-    return NextResponse.redirect(new URL(redirectUrl, request.url))
-  }
-
-  // Legacy signup redirect to new sign-up
+  // Legacy signup redirect to new sign-up (preserve query params)
   if (pathname === '/signup') {
     const signUpUrl = new URL('/sign-up', request.url)
-    // Preserve query params
     request.nextUrl.searchParams.forEach((value, key) => {
       signUpUrl.searchParams.set(key, value)
     })
     return NextResponse.redirect(signUpUrl)
   }
 
+  // Handle auth routes - redirect to /design if already authenticated
+  if (isAuthRoute(pathname) && user) {
+    const next = request.nextUrl.searchParams.get('next')
+    const redirectUrl = next && next.startsWith('/') ? next : '/design'
+    return NextResponse.redirect(new URL(redirectUrl, request.url))
+  }
   return response
 }
 
