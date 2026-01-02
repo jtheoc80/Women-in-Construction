@@ -17,13 +17,6 @@ interface PosterProfile {
   role: string | null
 }
 
-interface ListingPhoto {
-  id: string
-  listing_id: string
-  storage_path: string
-  sort_order: number
-}
-
 interface Listing {
   id: string
   user_id: string
@@ -46,7 +39,6 @@ interface Listing {
   full_address?: string | null
   is_owner?: boolean
   poster_profiles?: PosterProfile | null
-  listing_photos?: ListingPhoto[]
   cover_photo_url?: string | null
   photo_urls?: string[] | null
   profiles?: { display_name: string }
@@ -56,9 +48,13 @@ interface Listing {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-function getPhotoUrl(storagePath: string): string {
-  if (!SUPABASE_URL) return ''
-  return `${SUPABASE_URL}/storage/v1/object/public/listing-photos/${storagePath}`
+function normalizeListingPhotoUrl(urlOrPath?: string | null): string | null {
+  if (!urlOrPath) return null
+  const val = urlOrPath.trim()
+  if (!val) return null
+  if (val.startsWith('http://') || val.startsWith('https://')) return val
+  if (!SUPABASE_URL) return val
+  return `${SUPABASE_URL}/storage/v1/object/public/listing-photos/${val}`
 }
 
 async function fetchListings(filters: {
@@ -70,7 +66,7 @@ async function fetchListings(filters: {
     return getMockListings()
   }
 
-  let url = `${SUPABASE_URL}/rest/v1/listings?select=*,poster_profiles!poster_profile_id(*),listing_photos(*)&is_active=eq.true&order=created_at.desc`
+  let url = `${SUPABASE_URL}/rest/v1/listings?select=*,poster_profiles!poster_profile_id(*)&is_active=eq.true&order=created_at.desc`
   
   if (filters.city) {
     url += `&city=ilike.*${filters.city}*`
@@ -90,12 +86,7 @@ async function fetchListings(filters: {
       },
     })
     if (!res.ok) throw new Error('Failed to fetch')
-    const data = await res.json()
-    
-    return data.map((listing: Listing) => ({
-      ...listing,
-      listing_photos: listing.listing_photos?.sort((a, b) => a.sort_order - b.sort_order) || [],
-    }))
+    return await res.json()
   } catch {
     return getMockListings()
   }
@@ -136,31 +127,24 @@ function getMockListings(): Listing[] {
   ]
 }
 
-function getListingCoverPhotoUrl(listing: Listing): string | null {
-  if (listing.listing_photos && listing.listing_photos.length > 0) {
-    return getPhotoUrl(listing.listing_photos[0].storage_path)
-  }
-  if (listing.cover_photo_url) return listing.cover_photo_url
-  if (listing.photo_urls && listing.photo_urls.length > 0) return listing.photo_urls[0]
-  return null
+function getListingHeroImageUrl(listing: Listing): string | null {
+  return (
+    normalizeListingPhotoUrl(listing.cover_photo_url) ??
+    normalizeListingPhotoUrl(listing.photo_urls?.[0]) ??
+    null
+  )
 }
 
 function getListingPhotoUrls(listing: Listing): string[] {
-  if (listing.listing_photos && listing.listing_photos.length > 0) {
-    return listing.listing_photos.map(p => getPhotoUrl(p.storage_path))
-  }
-  if (listing.photo_urls) return listing.photo_urls
-  if (listing.cover_photo_url) return [listing.cover_photo_url]
-  return []
+  const urls = [
+    normalizeListingPhotoUrl(listing.cover_photo_url),
+    ...(listing.photo_urls || []).map(normalizeListingPhotoUrl),
+  ].filter((x): x is string => Boolean(x))
+  return Array.from(new Set(urls))
 }
 
 function getListingPhotoCount(listing: Listing): number {
-  if (listing.listing_photos && listing.listing_photos.length > 0) {
-    return listing.listing_photos.length
-  }
-  if (listing.photo_urls) return listing.photo_urls.length
-  if (listing.cover_photo_url) return 1
-  return 0
+  return getListingPhotoUrls(listing).length
 }
 
 function getDisplayName(listing: Listing): string {
@@ -450,9 +434,9 @@ export default function DesignClient() {
               >
                 {/* Photo */}
                 <div className="relative h-40 bg-slate-100 sm:h-44">
-                  {getListingCoverPhotoUrl(listing) ? (
+                  {getListingHeroImageUrl(listing) ? (
                     <img
-                      src={getListingCoverPhotoUrl(listing)!}
+                      src={getListingHeroImageUrl(listing)!}
                       alt={listing.area || listing.city}
                       className="h-full w-full object-cover"
                       loading="lazy"

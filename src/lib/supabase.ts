@@ -68,8 +68,8 @@ export interface Listing {
   jobsite_id: string | null
   hub_id: string | null
   shift: string | null
-  cover_photo_url: string | null
-  photo_urls: string[] | null
+  cover_photo_url?: string | null
+  photo_urls?: string[] | null
   profiles?: {
     display_name: string
   }

@@ -239,7 +239,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Create the listing
-      const { data: newListing, error: listingError } = await supabase
+      const { error: listingError } = await supabase
         .from('listings')
         .insert({
           user_id: user.id,
@@ -252,10 +252,10 @@ export async function POST(req: NextRequest) {
           room_type: listing.roomType,
           commute_area: listing.commuteArea,
           details: listing.details,
+          cover_photo_url: listing.photoUrls[0] || null,
+          photo_urls: listing.photoUrls.length > 1 ? listing.photoUrls.slice(1) : null,
           is_active: true,
         })
-        .select('id')
-        .single()
 
       if (listingError) {
         results.push({
@@ -267,25 +267,6 @@ export async function POST(req: NextRequest) {
       }
 
       listingsCreated++
-
-      // Step 5: Create listing photos
-      if (listing.photoUrls.length > 0 && newListing) {
-        const photoRecords = listing.photoUrls.map((url, index) => ({
-          listing_id: newListing.id,
-          storage_path: url, // Using external URLs directly
-          sort_order: index,
-        }))
-
-        const { error: photoError } = await supabase
-          .from('listing_photos')
-          .insert(photoRecords)
-
-        results.push({
-          step: `Add ${listing.photoUrls.length} photos to listing in ${listing.city}`,
-          success: !photoError,
-          error: photoError?.message,
-        })
-      }
 
       results.push({
         step: `Create listing in ${listing.city} (${listing.area})`,
