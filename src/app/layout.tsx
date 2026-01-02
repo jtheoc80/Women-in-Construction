@@ -3,6 +3,7 @@ import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://sitesistersconstruction.com'),
   title: 'SiteSisters - Roommates Who Get the Jobsite Schedule',
   description: 'Women-first roommate matching for construction & data center projects. No public contact info. Intros by request.',
 }
