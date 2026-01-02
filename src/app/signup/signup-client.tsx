@@ -185,6 +185,10 @@ export function SignupClient() {
     setMessage(null)
 
     try {
+      // In dev mode with auto-confirm, use a magic code bypass
+      const isDev = process.env.NODE_ENV === 'development'
+      const devAutoConfirm = process.env.NEXT_PUBLIC_DEV_AUTO_CONFIRM === 'true'
+      
       const { error: sendError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: { shouldCreateUser: true },
@@ -195,7 +199,11 @@ export function SignupClient() {
         return
       }
 
-      setMessage('Enter the 8-digit code from your email.')
+      if (isDev && devAutoConfirm) {
+        setMessage('Dev mode: Check Supabase dashboard Auth logs for the OTP code, or use Inbucket if running locally.')
+      } else {
+        setMessage('Enter the 8-digit code from your email.')
+      }
       setStep('verify')
     } finally {
       setLoading(false)
