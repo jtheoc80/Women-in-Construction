@@ -706,9 +706,11 @@ export default function DesignPage() {
         break
       }
       case 'phone': {
-        const phoneRegex = /^[\d\s\-()+]+$/
-        if (!phoneRegex.test(value) || value.replace(/\D/g, '').length < 10) {
-          return { isValid: false, error: 'Please enter a valid phone number (at least 10 digits)' }
+        // More strict phone validation: must have at least one digit, and only valid phone chars
+        const phoneRegex = /^[0-9\s\-()]+$/
+        const digitCount = value.replace(/\D/g, '').length
+        if (!phoneRegex.test(value) || digitCount < 10 || digitCount > 15) {
+          return { isValid: false, error: 'Please enter a valid phone number (10-15 digits)' }
         }
         break
       }
@@ -1304,7 +1306,7 @@ export default function DesignPage() {
                     <select
                       required
                       value={newListingContact.contactPreference}
-                      onChange={(e) => setNewListingContact({ contactPreference: e.target.value, contactValue: '' })}
+                      onChange={(e) => setNewListingContact({ ...newListingContact, contactPreference: e.target.value, contactValue: '' })}
                       style={styles.formSelect}
                     >
                       <option value="email">Email</option>
