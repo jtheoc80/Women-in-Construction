@@ -70,7 +70,7 @@ async function fetchListings(filters: {
     return getMockListings()
   }
 
-  let url = `${SUPABASE_URL}/rest/v1/listings?select=*,poster_profiles(*),listing_photos(*)&is_active=eq.true&order=created_at.desc`
+  let url = `${SUPABASE_URL}/rest/v1/listings?select=*,poster_profiles:poster_profile_id(*),listing_photos(*)&is_active=eq.true&order=created_at.desc`
   
   if (filters.city) {
     url += `&city=ilike.*${filters.city}*`
