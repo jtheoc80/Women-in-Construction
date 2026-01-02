@@ -38,7 +38,15 @@ export function SignUpClient() {
     e.preventDefault()
     
     if (!isPasswordValid) {
-      setError('Please meet all password requirements')
+      const unmetRequirements = passwordRequirements
+        .filter(req => !req.met)
+        .map(req => req.text)
+      const requirementsText = unmetRequirements.join(', ')
+      setError(
+        unmetRequirements.length
+          ? `Please meet all password requirements: ${requirementsText}`
+          : 'Please meet all password requirements'
+      )
       return
     }
 
