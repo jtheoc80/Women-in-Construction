@@ -77,7 +77,7 @@ interface PostListingModalProps {
 }
 
 export function PostListingModal({ open, onClose, onSuccess }: PostListingModalProps) {
-  const { profile } = useAuth()
+  const { profile, user } = useAuth()
   const [step, setStep] = React.useState(0)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const contentRef = React.useRef<HTMLDivElement>(null)
@@ -255,6 +255,13 @@ export function PostListingModal({ open, onClose, onSuccess }: PostListingModalP
 
   // Submit handler
   const handleSubmit = async () => {
+    // Validate authentication before submission
+    if (!user) {
+      alert('You must be signed in to post a listing')
+      onClose()
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
