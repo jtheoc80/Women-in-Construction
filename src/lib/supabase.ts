@@ -16,6 +16,14 @@ export interface Jobsite {
   is_active: boolean
   created_at: string
   updated_at: string
+  // New fields for data center job sites
+  operator?: string
+  project_type?: string
+  status?: string
+  county_or_parish?: string
+  nearest_town?: string
+  notes?: string
+  is_public?: boolean
 }
 
 export interface Hub {
