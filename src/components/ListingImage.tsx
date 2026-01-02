@@ -164,7 +164,24 @@ export function ListingImage({
   )
 }
 
+/**
+ * Props for ListingCardImage - accepts pre-normalized data
+ */
 interface ListingCardImageProps {
+  /** Pre-normalized cover photo URL (from ListingCardModel.coverPhotoUrl) */
+  coverPhotoUrl?: string | null
+  /** Pre-computed photo count (from ListingCardModel.photoCount) */
+  photoCount?: number
+  /** Alt text for the image */
+  alt: string
+  className?: string
+  priority?: boolean
+}
+
+/**
+ * Props for legacy usage with raw listing object
+ */
+interface ListingCardImageLegacyProps {
   listing: {
     cover_photo_url?: string | null
     photo_urls?: string[] | null
@@ -178,20 +195,37 @@ interface ListingCardImageProps {
 /**
  * ListingCardImage - Image component specifically for listing cards
  * Uses 16:9 aspect ratio and shows photo count badge if multiple photos
+ * 
+ * Accepts either:
+ * - Pre-normalized props: coverPhotoUrl, photoCount, alt
+ * - Legacy listing object: listing.cover_photo_url, listing.photo_urls
  */
-export function ListingCardImage({
-  listing,
-  className,
-  priority = false,
-}: ListingCardImageProps) {
-  const heroUrl = getListingHeroImageUrl(listing)
-  const photoCount = getListingPhotoUrls(listing).length
+export function ListingCardImage(props: ListingCardImageProps | ListingCardImageLegacyProps) {
+  const { className, priority = false } = props
+  
+  // Determine if using new normalized props or legacy listing object
+  let heroUrl: string | null
+  let photoCount: number
+  let altText: string
+  
+  if ('coverPhotoUrl' in props) {
+    // New normalized props
+    heroUrl = props.coverPhotoUrl ?? null
+    photoCount = props.photoCount ?? 0
+    altText = props.alt
+  } else {
+    // Legacy listing object - compute from raw data
+    const { listing } = props as ListingCardImageLegacyProps
+    heroUrl = getListingHeroImageUrl(listing)
+    photoCount = getListingPhotoUrls(listing).length
+    altText = listing.area || listing.city || 'Listing photo'
+  }
 
   return (
     <div className={cn('relative', className)}>
       <ListingImage
         src={heroUrl}
-        alt={listing.area || listing.city || 'Listing photo'}
+        alt={altText}
         priority={priority}
         aspectRatio="16/9"
         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
