@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { SiteSistersMark } from '@/components/SiteSistersMark'
+import { SiteLogoMark } from '@/components/SiteLogo'
 
 export type LocalProfile = {
   displayName: string
@@ -62,7 +62,7 @@ export function ProfilePill({
         aria-expanded={open}
       >
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
-          <SiteSistersMark className="h-5 w-5" />
+          <SiteLogoMark className="h-5 w-5" />
         </span>
 
         <span className="hidden min-w-0 flex-col text-left sm:flex">
