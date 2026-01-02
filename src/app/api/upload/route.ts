@@ -85,7 +85,11 @@ function getExtension(mimeType: string): string {
  * Upload photos to Supabase Storage
  * 
  * Request: multipart/form-data with files under field "files"
- * Response: { ok: true, paths: string[] }
+ * Response: { ok: true, uploadBatchId: string, paths: string[] }
+ * 
+ * The uploadBatchId is a unique identifier for this upload batch.
+ * Photos are stored in a folder named after this batch ID.
+ * This ID should be tracked and used when creating the listing to associate photos correctly.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -127,8 +131,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Generate a unique listing ID for this batch (will be used as folder name)
-    const listingId = nanoid(12)
+    // Generate a unique upload batch ID for this batch (will be used as folder name)
+    // This ID is returned to the client and should be tracked until the listing is created
+    const uploadBatchId = nanoid(12)
     const uploadedPaths: string[] = []
     const errors: string[] = []
 
@@ -153,7 +158,7 @@ export async function POST(req: NextRequest) {
       // Generate unique filename
       const ext = getExtension(file.type)
       const fileName = `${nanoid(16)}.${ext}`
-      const storagePath = `${listingId}/${fileName}`
+      const storagePath = `${uploadBatchId}/${fileName}`
 
       // Read file buffer
       const buffer = await file.arrayBuffer()
@@ -185,6 +190,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { 
         ok: true, 
+        uploadBatchId, // Return the batch ID for tracking
         paths: uploadedPaths,
         ...(errors.length > 0 && { warnings: errors }),
       },
