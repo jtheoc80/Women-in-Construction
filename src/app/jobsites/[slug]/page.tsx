@@ -7,8 +7,11 @@ import { Navbar } from '@/components/Navbar'
 import { useGatedAction, useAuth } from '@/contexts/AuthContext'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 import {
+  ListingImage,
+  getListingHeroImageUrl,
+} from '@/components/ListingImage'
+import {
   AlertTriangle,
-  ImageOff,
   Lightbulb,
   Moon,
   Sun,
@@ -199,30 +202,20 @@ function ListingCard({
   onClick: () => void
 }) {
   const photoCount = getPhotoCount(listing)
-  const hasPhotos = photoCount > 0
+  const heroUrl = getListingHeroImageUrl(listing)
 
   return (
     <button onClick={onClick} style={listingCardStyles.container}>
-      {/* Photo Section */}
+      {/* Photo Section with 16:9 aspect ratio */}
       <div style={listingCardStyles.photoContainer}>
-        {hasPhotos ? (
-          <>
-            <img
-              src={listing.cover_photo_url!}
-              alt={`${listing.area || listing.city} listing`}
-              style={listingCardStyles.photo}
-            />
-            <span style={listingCardStyles.photoCount}>{photoCount} photos</span>
-          </>
-        ) : (
-          <div style={listingCardStyles.noPhoto}>
-            <ImageOff
-              aria-hidden="true"
-              size={32}
-              style={listingCardStyles.noPhotoIcon}
-            />
-            <span style={listingCardStyles.noPhotoText}>No photos yet</span>
-          </div>
+        <ListingImage
+          src={heroUrl}
+          alt={`${listing.area || listing.city} listing`}
+          aspectRatio="16/9"
+          className="w-full"
+        />
+        {photoCount > 1 && (
+          <span style={listingCardStyles.photoCount}>{photoCount} photos</span>
         )}
         {/* Room type badge */}
         <span style={listingCardStyles.typeBadge}>
@@ -292,13 +285,7 @@ const listingCardStyles = {
   } as React.CSSProperties,
   photoContainer: {
     position: 'relative',
-    height: '160px',
     background: '#f1f5f9',
-  } as React.CSSProperties,
-  photo: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
   } as React.CSSProperties,
   photoCount: {
     position: 'absolute',
@@ -310,22 +297,7 @@ const listingCardStyles = {
     borderRadius: '4px',
     fontSize: '0.75rem',
     fontWeight: 500,
-  } as React.CSSProperties,
-  noPhoto: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    gap: '8px',
-  } as React.CSSProperties,
-  noPhotoIcon: {
-    fontSize: '2rem',
-    opacity: 0.5,
-  } as React.CSSProperties,
-  noPhotoText: {
-    fontSize: '0.85rem',
-    color: '#94a3b8',
+    zIndex: 10,
   } as React.CSSProperties,
   typeBadge: {
     position: 'absolute',
@@ -338,6 +310,7 @@ const listingCardStyles = {
     fontSize: '0.75rem',
     fontWeight: 500,
     boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+    zIndex: 10,
   } as React.CSSProperties,
   content: {
     padding: '16px',
@@ -707,21 +680,21 @@ function ListingDrawer({
           <X aria-hidden="true" size={18} />
         </button>
 
-        {/* Photo Gallery */}
-        {listing.cover_photo_url && (
-          <div style={drawerStyles.photoGallery}>
-            <img
-              src={listing.cover_photo_url}
-              alt="Listing"
-              style={drawerStyles.mainPhoto}
-            />
-            {photoCount > 1 && (
-              <div style={drawerStyles.photoCountBadge}>
-                {photoCount} photos
-              </div>
-            )}
-          </div>
-        )}
+        {/* Photo Gallery with 16:9 aspect ratio */}
+        <div style={drawerStyles.photoGallery}>
+          <ListingImage
+            src={getListingHeroImageUrl(listing)}
+            alt="Listing"
+            aspectRatio="16/9"
+            className="w-full"
+            sizes="(max-width: 480px) 100vw, 480px"
+          />
+          {photoCount > 1 && (
+            <div style={drawerStyles.photoCountBadge}>
+              {photoCount} photos
+            </div>
+          )}
+        </div>
 
         <div style={drawerStyles.content}>
           <h2 style={drawerStyles.title}>{listing.area || listing.city}</h2>
@@ -880,13 +853,7 @@ const drawerStyles = {
   } as React.CSSProperties,
   photoGallery: {
     position: 'relative',
-    height: '250px',
     background: '#f1f5f9',
-  } as React.CSSProperties,
-  mainPhoto: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
   } as React.CSSProperties,
   photoCountBadge: {
     position: 'absolute',

@@ -6,6 +6,11 @@ import { Button } from '@/components/ui/button'
 import { ProfilePill } from '@/components/ProfilePill'
 import { BottomSheet, SlideOver } from '@/components/BottomSheet'
 import { PostListingModal } from '@/components/PostListingModal'
+import {
+  ListingCardImage,
+  ListingImage,
+  getListingPhotoUrls,
+} from '@/components/ListingImage'
 import { MapPin, Target, ChevronLeft, ChevronRight, Filter, Loader2, Building2, Lock } from 'lucide-react'
 import { useGatedAction, useAuth } from '@/contexts/AuthContext'
 
@@ -45,17 +50,8 @@ interface Listing {
 }
 
 // Supabase client constants
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-
-function normalizeListingPhotoUrl(urlOrPath?: string | null): string | null {
-  if (!urlOrPath) return null
-  const val = urlOrPath.trim()
-  if (!val) return null
-  if (val.startsWith('http://') || val.startsWith('https://')) return val
-  if (!SUPABASE_URL) return val
-  return `${SUPABASE_URL}/storage/v1/object/public/listing-photos/${val}`
-}
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 
 async function fetchListings(filters: {
   city?: string
@@ -127,26 +123,6 @@ function getMockListings(): Listing[] {
   ]
 }
 
-function getListingHeroImageUrl(listing: Listing): string | null {
-  return (
-    normalizeListingPhotoUrl(listing.cover_photo_url) ??
-    normalizeListingPhotoUrl(listing.photo_urls?.[0]) ??
-    null
-  )
-}
-
-function getListingPhotoUrls(listing: Listing): string[] {
-  const urls = [
-    normalizeListingPhotoUrl(listing.cover_photo_url),
-    ...(listing.photo_urls || []).map(normalizeListingPhotoUrl),
-  ].filter((x): x is string => Boolean(x))
-  return Array.from(new Set(urls))
-}
-
-function getListingPhotoCount(listing: Listing): number {
-  return getListingPhotoUrls(listing).length
-}
-
 function getDisplayName(listing: Listing): string {
   return listing.poster_profiles?.display_name || listing.profiles?.display_name || 'Anonymous'
 }
@@ -170,42 +146,44 @@ function formatDate(dateStr: string | null): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-// Photo Carousel Component
+// Photo Carousel Component with next/image
 function PhotoCarousel({ photos }: { photos: string[] }) {
   const [currentIndex, setCurrentIndex] = useState(0)
 
   if (photos.length === 0) {
     return (
-      <div className="flex h-60 w-full items-center justify-center rounded-xl bg-gradient-to-br from-slate-800 to-slate-700 sm:h-64">
+      <div className="flex w-full items-center justify-center rounded-xl bg-gradient-to-br from-slate-800 to-slate-700" style={{ aspectRatio: '16/9' }}>
         <span className="text-sm font-medium text-white/70">Photo coming soon</span>
       </div>
     )
   }
 
   return (
-    <div className="relative h-60 w-full overflow-hidden rounded-xl bg-slate-800 sm:h-64">
-      <img
+    <div className="relative w-full overflow-hidden rounded-xl bg-slate-800" style={{ aspectRatio: '16/9' }}>
+      <ListingImage
         src={photos[currentIndex]}
         alt={`Photo ${currentIndex + 1}`}
-        className="h-full w-full object-cover"
+        fill
+        className="absolute inset-0"
+        sizes="(max-width: 768px) 100vw, 50vw"
       />
       {photos.length > 1 && (
         <>
           <button
             onClick={() => setCurrentIndex(prev => (prev === 0 ? photos.length - 1 : prev - 1))}
-            className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg"
+            className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg z-10"
             aria-label="Previous photo"
           >
             <ChevronLeft className="h-5 w-5 text-slate-800" />
           </button>
           <button
             onClick={() => setCurrentIndex(prev => (prev === photos.length - 1 ? 0 : prev + 1))}
-            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg"
+            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg z-10"
             aria-label="Next photo"
           >
             <ChevronRight className="h-5 w-5 text-slate-800" />
           </button>
-          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
+          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5 z-10">
             {photos.map((_, idx) => (
               <button
                 key={idx}
@@ -426,37 +404,22 @@ export default function DesignClient() {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-            {listings.map((listing) => (
+            {listings.map((listing, index) => (
               <div
                 key={listing.id}
                 onClick={() => setSelectedListing(listing)}
                 className="cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
               >
-                {/* Photo */}
-                <div className="relative h-40 bg-slate-100 sm:h-44">
-                  {getListingHeroImageUrl(listing) ? (
-                    <img
-                      src={getListingHeroImageUrl(listing)!}
-                      alt={listing.area || listing.city}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-700 to-slate-600">
-                      <span className="text-sm font-medium text-white/80">Photo coming soon</span>
-                    </div>
-                  )}
-                  <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                {/* Photo with 16:9 aspect ratio */}
+                <div className="relative">
+                  <ListingCardImage
+                    listing={listing}
+                    priority={index < 6}
+                    className="bg-slate-100"
+                  />
+                  <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm z-10">
                     {formatRoomType(listing.room_type)}
                   </span>
-                  {getListingPhotoCount(listing) > 1 && (
-                    <span className="absolute bottom-3 right-3 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      {getListingPhotoCount(listing)} photos
-                    </span>
-                  )}
                 </div>
 
                 {/* Content */}
