@@ -90,6 +90,45 @@ export interface MovePlan {
   updated_at: string
 }
 
+// User Job Site - saved project location for generating proposals
+export interface UserJobSite {
+  id: string
+  user_id: string
+  name: string
+  address_line1: string
+  address_line2: string | null
+  city: string
+  state: string
+  zip: string
+  notes: string | null
+  status: 'active' | 'archived'
+  last_proposal_at: string | null
+  photo_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateUserJobSiteInput {
+  name: string
+  address_line1: string
+  address_line2?: string | null
+  city: string
+  state: string
+  zip: string
+  notes?: string | null
+}
+
+export interface UpdateUserJobSiteInput {
+  name?: string
+  address_line1?: string
+  address_line2?: string | null
+  city?: string
+  state?: string
+  zip?: string
+  notes?: string | null
+  status?: 'active' | 'archived'
+}
+
 // Plan Move request/response types
 export interface PlanMoveRequest {
   jobsite_id: string
