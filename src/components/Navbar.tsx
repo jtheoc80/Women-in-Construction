@@ -108,7 +108,7 @@ export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
               variant="ghost"
               className="border border-white/20 bg-transparent text-sm text-white hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-teal-400"
             >
-              <Link href={`/signup?next=${encodeURIComponent(currentUrl)}`}>Sign in</Link>
+              <Link href={`/sign-in?next=${encodeURIComponent(currentUrl)}`}>Sign in</Link>
             </Button>
           )}
         </div>
