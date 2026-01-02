@@ -52,7 +52,7 @@ export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
           )}
 
           {loading ? (
-            <div className="h-9 w-20 animate-pulse rounded bg-white/10" />
+            <div className="h-9 w-20 animate-pulse rounded bg-white/20" />
           ) : user ? (
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="hidden sm:block text-right">
@@ -66,7 +66,7 @@ export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
 
               <details className="relative">
                 <summary className="list-none cursor-pointer select-none rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-white ring-1 ring-white/15">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-700 text-sm font-semibold text-white ring-1 ring-white/20">
                     {initials}
                   </div>
                 </summary>
@@ -103,7 +103,8 @@ export function Navbar({ onPostListing, showPostButton = true }: NavbarProps) {
           ) : (
             <Button
               asChild
-              className="border border-white/20 bg-transparent text-sm text-white hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-teal-400"
+              variant="ghost"
+              className="border border-white/20 bg-transparent text-sm text-white hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-teal-400"
             >
               <Link href={`/signup?next=${encodeURIComponent(currentUrl)}`}>Sign in</Link>
             </Button>
