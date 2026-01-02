@@ -136,6 +136,18 @@ function validateRequest(body: unknown): { valid: true; data: CreateListingReque
     return { valid: false, error: 'Valid room type is required (private_room, shared_room, entire_place)' }
   }
 
+  // Validate coordinates if provided
+  if (req.listing.lat !== undefined && req.listing.lat !== null) {
+    if (typeof req.listing.lat !== 'number' || isNaN(req.listing.lat) || req.listing.lat < -90 || req.listing.lat > 90) {
+      return { valid: false, error: 'Latitude must be a number between -90 and 90' }
+    }
+  }
+  if (req.listing.lng !== undefined && req.listing.lng !== null) {
+    if (typeof req.listing.lng !== 'number' || isNaN(req.listing.lng) || req.listing.lng < -180 || req.listing.lng > 180) {
+      return { valid: false, error: 'Longitude must be a number between -180 and 180' }
+    }
+  }
+
   // Validate photo paths if provided
   if (req.photoPaths && !Array.isArray(req.photoPaths)) {
     return { valid: false, error: 'Photo paths must be an array' }
