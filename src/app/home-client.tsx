@@ -40,6 +40,7 @@ interface Listing {
   cover_photo_url?: string | null
   photo_urls?: string[] | null
   profiles?: { display_name: string }
+  is_demo?: boolean
 }
 
 function getDisplayName(listing: Listing): string {
@@ -168,6 +169,11 @@ export default function HomeClient() {
                   <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
                     {formatRoomType(listing.room_type)}
                   </span>
+                  {listing.is_demo && (
+                    <span className="absolute right-3 top-3 rounded-full bg-amber-100/95 px-3 py-1 text-xs font-semibold text-amber-800 shadow-sm">
+                      Demo
+                    </span>
+                  )}
                 </div>
 
                 {/* Content */}
