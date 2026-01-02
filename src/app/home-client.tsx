@@ -140,25 +140,14 @@ export default function HomeClient() {
       {/* Listings Grid */}
       <section id="listings" className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
         <h2 className="mb-4 text-lg font-semibold text-slate-900 sm:mb-6 sm:text-xl">
-          {loading ? 'Loading listings...' : error ? 'Listings unavailable' : `${listings.length} Listings Available`}
+          {loading ? 'Loading listings...' : `${listings.length} Listings Available`}
         </h2>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
           </div>
-        ) : error ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
-            <p className="text-sm font-semibold text-red-800">Couldn’t load listings</p>
-            <p className="mt-1 text-sm text-red-700">{error}</p>
-            <button
-              onClick={loadListings}
-              className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-red-600 px-5 text-sm font-semibold text-white hover:bg-red-500"
-            >
-              Retry
-            </button>
-          </div>
-        ) : listings.length === 0 ? (
+        ) : error || listings.length === 0 ? (
           <div className="py-20 text-center text-slate-500">
             <p>No listings yet. Be the first to post!</p>
           </div>
