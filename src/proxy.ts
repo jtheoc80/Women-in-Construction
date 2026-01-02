@@ -8,12 +8,12 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const PRIMARY_DOMAIN = 'sitesistersconstruction.com'
 
 // Routes that require authentication
-// Note: /design is intentionally NOT protected - it's the public landing page
-// that uses useGatedAction() for protected actions like posting
-const PROTECTED_ROUTES = ['/app', '/account', '/inbox', '/browse']
+// Protected routes redirect to /signup if not authenticated
+const PROTECTED_ROUTES = ['/account', '/inbox']
 
-// Routes that should redirect to /design if already authenticated
-const AUTH_ROUTES = ['/sign-in', '/sign-up', '/signup']
+// Routes that should redirect to /browse if already authenticated
+// Note: /sign-up is handled by next.config.js redirect to /signup
+const AUTH_ROUTES = ['/sign-in', '/signup']
 
 // Auth callback route - should never be redirected
 const AUTH_CALLBACK_ROUTE = '/auth/callback'
@@ -31,10 +31,10 @@ function isAuthRoute(pathname: string): boolean {
 }
 
 /**
- * Detect if a request is a Next.js prefetch or RSC request.
+ * Detect if a request is a Next.js prefetch request.
  * These should NOT trigger auth redirects to avoid log spam and unnecessary 307s.
  */
-function isPrefetchOrRSCRequest(request: NextRequest): boolean {
+function isPrefetchRequest(request: NextRequest): boolean {
   const headers = request.headers
   
   // Next.js Link prefetch header
@@ -46,14 +46,10 @@ function isPrefetchOrRSCRequest(request: NextRequest): boolean {
   // Middleware prefetch header
   if (headers.get('x-middleware-prefetch') === '1') return true
   
-  // RSC (React Server Components) requests - these have special headers
-  // but should still be allowed through for session refresh
-  // We only skip redirects for prefetch, not all RSC requests
-  
   return false
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const hostname = request.headers.get('host') || ''
   const { pathname } = request.nextUrl
   
@@ -70,16 +66,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url, { status: 301 })
   }
 
-  // Skip auth logic entirely for prefetch requests to avoid redirect noise
-  // Prefetch requests should pass through without triggering auth redirects
-  const isPrefetch = isPrefetchOrRSCRequest(request)
-  if (isPrefetch) {
-    return NextResponse.next({
-      request: {
-        headers: request.headers,
-      },
-    })
-  }
+  // Skip auth redirects for prefetch requests to avoid log spam
+  // But still allow session refresh to happen
+  const isPrefetch = isPrefetchRequest(request)
 
   // Auth callback route handles its own logic - don't interfere
   if (pathname.startsWith(AUTH_CALLBACK_ROUTE)) {
@@ -123,28 +112,25 @@ export async function middleware(request: NextRequest) {
   // Refresh session if expired - required for Server Components
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Handle protected routes - redirect to sign-in if not authenticated
+  // Skip redirects for prefetch requests (but session refresh above still runs)
+  if (isPrefetch) {
+    return response
+  }
+
+  // Handle protected routes - redirect to signup if not authenticated
   if (isProtectedRoute(pathname) && !user) {
-    const signInUrl = new URL('/sign-in', request.url)
-    signInUrl.searchParams.set('next', pathname)
-    return NextResponse.redirect(signInUrl)
+    const signupUrl = new URL('/signup', request.url)
+    signupUrl.searchParams.set('next', pathname)
+    return NextResponse.redirect(signupUrl)
   }
 
-  // Legacy signup redirect to new sign-up (preserve query params)
-  if (pathname === '/signup') {
-    const signUpUrl = new URL('/sign-up', request.url)
-    request.nextUrl.searchParams.forEach((value, key) => {
-      signUpUrl.searchParams.set(key, value)
-    })
-    return NextResponse.redirect(signUpUrl)
-  }
-
-  // Handle auth routes - redirect to /design if already authenticated
+  // Handle auth routes - redirect to /browse if already authenticated
   if (isAuthRoute(pathname) && user) {
     const next = request.nextUrl.searchParams.get('next')
-    const redirectUrl = next && next.startsWith('/') ? next : '/design'
+    const redirectUrl = next && next.startsWith('/') ? next : '/browse'
     return NextResponse.redirect(new URL(redirectUrl, request.url))
   }
+
   return response
 }
 
