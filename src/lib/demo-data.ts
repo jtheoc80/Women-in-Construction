@@ -1,40 +1,12 @@
+import type { RawListing } from './listings/normalize'
 
-interface PosterProfile {
-  id: string
-  display_name: string
-  company: string
-  role: string | null
-}
-
-interface Listing {
-  id: string
-  user_id: string
-  poster_profile_id: string | null
-  title: string | null
-  city: string
-  area: string | null
-  rent_min: number | null
-  rent_max: number | null
-  move_in: string | null
-  room_type: string
-  commute_area: string | null
-  details: string | null
-  tags: string[] | null
-  place_id: string | null
-  lat: number | null
-  lng: number | null
-  is_active: boolean
-  created_at: string
-  full_address?: string | null
-  is_owner?: boolean
-  poster_profiles?: PosterProfile | null
-  cover_photo_url?: string | null
-  photo_urls?: string[] | null
-  profiles?: { display_name: string }
-  is_demo?: boolean
-}
-
-export const DEMO_LISTINGS: Partial<Listing>[] = [
+/**
+ * Demo listings data with local fallback images
+ * 
+ * Uses local /demo/listings/*.jpg images as primary source to ensure
+ * images always load, with Unsplash URLs as secondary option.
+ */
+export const DEMO_LISTINGS: RawListing[] = [
   {
     id: 'demo-1',
     user_id: 'demo-user-1',
@@ -49,6 +21,7 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
     details: 'Spacious private room in a quiet townhouse. Shared kitchen and bath. Perfect for construction professionals.',
     tags: ['Parking', 'Wifi', 'Laundry'],
     is_active: true,
+    is_demo: true,
     created_at: new Date().toISOString(),
     poster_profiles: {
       id: 'poster-1',
@@ -56,10 +29,11 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
       company: 'Turner Construction',
       role: 'Project Engineer'
     },
-    cover_photo_url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+    // Local image as primary, guaranteed to work
+    cover_photo_url: '/demo/listings/1.jpg',
     photo_urls: [
-      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
+      '/demo/listings/1.jpg',
+      '/demo/listings/2.jpg'
     ]
   },
   {
@@ -76,6 +50,7 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
     details: 'Shared room with one other female roommate. Close to Intel site. Weekly cleaning included.',
     tags: ['Short-term', 'Furnished', 'No Deposit'],
     is_active: true,
+    is_demo: true,
     created_at: new Date(Date.now() - 86400000).toISOString(),
     poster_profiles: {
       id: 'poster-2',
@@ -83,9 +58,9 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
       company: 'DPR Construction',
       role: 'Safety Manager'
     },
-    cover_photo_url: 'https://images.unsplash.com/photo-1555854743-e3c2f6a5bb93?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+    cover_photo_url: '/demo/listings/2.jpg',
     photo_urls: [
-      'https://images.unsplash.com/photo-1555854743-e3c2f6a5bb93?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
+      '/demo/listings/2.jpg'
     ]
   },
   {
@@ -102,6 +77,7 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
     details: 'Fully furnished basement apartment with private entrance. Kitchenette and private bath.',
     tags: ['Private Entrance', 'Kitchenette', 'Pets Allowed'],
     is_active: true,
+    is_demo: true,
     created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     poster_profiles: {
       id: 'poster-3',
@@ -109,9 +85,9 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
       company: 'Bechtel',
       role: 'Electrician'
     },
-    cover_photo_url: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+    cover_photo_url: '/demo/listings/3.jpg',
     photo_urls: [
-      'https://images.unsplash.com/photo-1493809842364-78817add7ffb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
+      '/demo/listings/3.jpg'
     ]
   },
   {
@@ -128,6 +104,7 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
     details: 'Looking for a clean and respectful roommate. I work at the data center too.',
     tags: ['Quiet', 'Non-smoking', 'Yard'],
     is_active: true,
+    is_demo: true,
     created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
     poster_profiles: {
       id: 'poster-4',
@@ -135,9 +112,9 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
       company: 'Rosendin',
       role: 'Foreman'
     },
-    cover_photo_url: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+    cover_photo_url: '/demo/listings/4.jpg',
     photo_urls: [
-      'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
+      '/demo/listings/4.jpg'
     ]
   },
   {
@@ -154,6 +131,7 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
     details: 'Huge master bedroom with walk-in closet and en-suite bathroom. Pool access.',
     tags: ['Pool', 'Gym', 'Gated Community'],
     is_active: true,
+    is_demo: true,
     created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
     poster_profiles: {
       id: 'poster-5',
@@ -161,9 +139,9 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
       company: 'Holder Construction',
       role: 'Field Engineer'
     },
-    cover_photo_url: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+    cover_photo_url: '/demo/listings/5.jpg',
     photo_urls: [
-      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
+      '/demo/listings/5.jpg'
     ]
   },
   {
@@ -180,6 +158,7 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
     details: 'Cute room in a 3bd/2ba house. You would share a bathroom with one other person.',
     tags: ['Female Only', 'No Pets', 'Washer/Dryer'],
     is_active: true,
+    is_demo: true,
     created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
     poster_profiles: {
       id: 'poster-6',
@@ -187,9 +166,9 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
       company: 'Meta',
       role: 'Logistics'
     },
-    cover_photo_url: 'https://images.unsplash.com/photo-1536349788264-1b816db3cc13?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+    cover_photo_url: '/demo/listings/6.jpg',
     photo_urls: [
-      'https://images.unsplash.com/photo-1536349788264-1b816db3cc13?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
+      '/demo/listings/6.jpg'
     ]
   }
 ];

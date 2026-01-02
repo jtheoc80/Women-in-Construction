@@ -8,68 +8,11 @@ import { useGatedAction } from '@/contexts/AuthContext'
 import { PostListingModal } from '@/components/PostListingModal'
 import { ListingCardImage } from '@/components/ListingImage'
 import { MapPin, Target, Loader2 } from 'lucide-react'
-
-interface PosterProfile {
-  id: string
-  display_name: string
-  company: string
-  role: string | null
-}
-
-interface Listing {
-  id: string
-  user_id: string
-  poster_profile_id: string | null
-  title: string | null
-  city: string
-  area: string | null
-  rent_min: number | null
-  rent_max: number | null
-  move_in: string | null
-  room_type: string
-  commute_area: string | null
-  details: string | null
-  tags: string[] | null
-  place_id: string | null
-  lat: number | null
-  lng: number | null
-  is_active: boolean
-  created_at: string
-  full_address?: string | null
-  is_owner?: boolean
-  poster_profiles?: PosterProfile | null
-  cover_photo_url?: string | null
-  photo_urls?: string[] | null
-  profiles?: { display_name: string }
-  is_demo?: boolean
-}
-
-function getDisplayName(listing: Listing): string {
-  return listing.poster_profiles?.display_name || listing.profiles?.display_name || 'Anonymous'
-}
-
-function getCompany(listing: Listing): string | null {
-  return listing.poster_profiles?.company || null
-}
-
-function formatRoomType(type: string): string {
-  switch (type) {
-    case 'private_room': return 'Private Room'
-    case 'shared_room': return 'Shared Room'
-    case 'entire_place': return 'Entire Place'
-    default: return type
-  }
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return 'Flexible'
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
+import { normalizeListings, type ListingCardModel, type RawListing } from '@/lib/listings/normalize'
 
 export default function HomeClient() {
   const router = useRouter()
-  const [listings, setListings] = useState<Listing[]>([])
+  const [listings, setListings] = useState<ListingCardModel[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { gateAction } = useGatedAction()
@@ -84,8 +27,10 @@ export default function HomeClient() {
         const payload = await response.json().catch(() => null)
         throw new Error(payload?.error || `Request failed (${response.status})`)
       }
-      const data = await response.json()
-      setListings(Array.isArray(data) ? data : [])
+      const data: RawListing[] = await response.json()
+      // Normalize all listings to consistent shape
+      const normalized = normalizeListings(Array.isArray(data) ? data : [])
+      setListings(normalized)
     } catch (error) {
       console.error('Error loading listings:', error)
       setError(error instanceof Error ? error.message : 'Failed to load listings')
@@ -158,20 +103,22 @@ export default function HomeClient() {
             {listings.map((listing, index) => (
               <Link
                 key={listing.id}
-                href={`/listings/${listing.id}`}
+                href={`/listings/${listing.rawId}`}
                 className="group block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
               >
                 {/* Photo with 16:9 aspect ratio */}
                 <div className="relative">
                   <ListingCardImage
-                    listing={listing}
+                    coverPhotoUrl={listing.coverPhotoUrl}
+                    photoCount={listing.photoCount}
+                    alt={listing.subLocation || listing.titleCity}
                     priority={index < 6}
                     className="bg-slate-100 transition-transform duration-500 group-hover:scale-105"
                   />
                   <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
-                    {formatRoomType(listing.room_type)}
+                    {listing.roomType}
                   </span>
-                  {listing.is_demo && (
+                  {listing.isDemo && (
                     <span className="absolute right-3 top-3 rounded-full bg-amber-100/95 px-3 py-1 text-xs font-semibold text-amber-800 shadow-sm">
                       Demo
                     </span>
@@ -181,32 +128,35 @@ export default function HomeClient() {
                 {/* Content */}
                 <div className="p-4 relative bg-white">
                   <h3 className="font-semibold text-slate-900 group-hover:text-teal-700 transition-colors">
-                    {listing.city}
+                    {listing.titleCity}
                   </h3>
-                  {listing.area && (
-                    <p className="mt-0.5 text-sm text-slate-500">{listing.area}</p>
+                  {listing.subLocation && (
+                    <p className="mt-0.5 text-sm text-slate-500">{listing.subLocation}</p>
                   )}
                   <p className="mt-2 text-lg font-bold text-slate-900">
-                    ${listing.rent_min || '?'} - ${listing.rent_max || '?'}
-                    <span className="text-sm font-normal">/mo</span>
+                    {listing.priceText}
                   </p>
-                  {listing.commute_area && (
+                  {listing.nearText && (
                     <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
                       <MapPin className="h-3 w-3" />
-                      Near {listing.commute_area}
+                      {listing.nearText}
                     </p>
                   )}
-                  <p className="mt-1 text-xs text-slate-400">
-                    Move-in: {formatDate(listing.move_in)}
-                  </p>
-                  <div className="mt-3 border-t border-slate-100 pt-3">
-                    <p className="text-xs text-slate-400">
-                      Posted by {getDisplayName(listing)}
-                      {getCompany(listing) && (
-                        <span className="text-slate-500"> • {getCompany(listing)}</span>
-                      )}
+                  {listing.moveInText && (
+                    <p className="mt-1 text-xs text-slate-400">
+                      {listing.moveInText}
                     </p>
-                  </div>
+                  )}
+                  {listing.postedByText && (
+                    <div className="mt-3 border-t border-slate-100 pt-3">
+                      <p className="text-xs text-slate-400">
+                        Posted by {listing.postedByText}
+                        {listing.companyText && (
+                          <span className="text-slate-500"> • {listing.companyText}</span>
+                        )}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </Link>
             ))}
