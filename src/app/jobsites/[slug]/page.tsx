@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import type { Listing, RankedHub, Jobsite } from '@/lib/supabase'
 import { Navbar } from '@/components/Navbar'
@@ -11,6 +11,7 @@ import {
   getListingHeroImageUrl,
 } from '@/components/ListingImage'
 import { ListingPhotoGallery } from '@/components/PhotoGallery'
+import { DEMO_LISTINGS } from '@/lib/demo-data'
 import {
   AlertTriangle,
   Lightbulb,
@@ -20,6 +21,39 @@ import {
   Target,
   X,
 } from 'lucide-react'
+
+/**
+ * Convert demo listings to Listing type for stable initial render.
+ * This ensures listings with photos are always available before API fetch completes.
+ */
+function getInitialDemoListings(): Listing[] {
+  return DEMO_LISTINGS.map(demo => ({
+    id: demo.id || `demo-${Date.now()}`,
+    user_id: demo.user_id || 'demo-user',
+    city: demo.city || 'Unknown',
+    area: demo.area || null,
+    rent_min: demo.rent_min ?? null,
+    rent_max: demo.rent_max ?? null,
+    move_in: demo.move_in || null,
+    room_type: demo.room_type || 'private_room',
+    commute_area: demo.commute_area || null,
+    details: demo.details || null,
+    is_active: true,
+    created_at: demo.created_at || new Date().toISOString(),
+    jobsite_id: null,
+    hub_id: null,
+    shift: null,
+    // CRITICAL: Always preserve photo fields from demo data
+    cover_photo_url: demo.cover_photo_url || null,
+    photo_urls: demo.photo_urls || null,
+    profiles: demo.poster_profiles ? {
+      display_name: demo.poster_profiles.display_name || 'Anonymous'
+    } : undefined,
+  }))
+}
+
+// Pre-compute initial demo listings once (stable reference)
+const INITIAL_DEMO_LISTINGS = getInitialDemoListings()
 
 // Types
 interface PlanMoveResponse {
@@ -987,8 +1021,22 @@ export default function JobsiteExplorerPage() {
   const params = useParams()
   const slug = params.slug as string
 
+  // Initialize with demo listings for stable first render
+  // This ensures images are always visible, even before API fetch completes
+  const initialData = useMemo<PlanMoveResponse>(() => ({
+    hubs: [],
+    listings: INITIAL_DEMO_LISTINGS,
+    jobsite: null,
+    scarcity: {
+      listings_14d: INITIAL_DEMO_LISTINGS.length,
+      avg_response_hours: null,
+      is_scarce: false,
+    },
+  }), [])
+
   const [loading, setLoading] = useState(true)
-  const [data, setData] = useState<PlanMoveResponse | null>(null)
+  const [isInitialLoad, setIsInitialLoad] = useState(true) // Track if this is the first load
+  const [data, setData] = useState<PlanMoveResponse>(initialData)
   const [selectedHub, setSelectedHub] = useState<string | null>(null)
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
   const [showPlanModal, setShowPlanModal] = useState(false)
@@ -1048,12 +1096,50 @@ export default function JobsiteExplorerPage() {
         throw new Error('Failed to fetch')
       }
 
-      const result = await response.json()
-      setData(result)
+      const result: PlanMoveResponse = await response.json()
+      
+      // Merge fetched listings with existing data to preserve photos
+      // If fetched listing has photos, use them; otherwise keep existing photos
+      setData(prevData => {
+        if (!prevData) return result
+        
+        // Create a map of existing listings by ID for quick lookup
+        const existingListingsMap = new Map(
+          prevData.listings.map(l => [l.id, l])
+        )
+        
+        // Merge listings: preserve photos from existing if fetched listing lacks them
+        const mergedListings = result.listings.map(fetchedListing => {
+          const existingListing = existingListingsMap.get(fetchedListing.id)
+          
+          // If fetched listing has photos, use it as-is
+          if (fetchedListing.cover_photo_url || (fetchedListing.photo_urls && fetchedListing.photo_urls.length > 0)) {
+            return fetchedListing
+          }
+          
+          // If existing listing has photos, preserve them
+          if (existingListing && (existingListing.cover_photo_url || (existingListing.photo_urls && existingListing.photo_urls.length > 0))) {
+            return {
+              ...fetchedListing,
+              cover_photo_url: existingListing.cover_photo_url,
+              photo_urls: existingListing.photo_urls,
+            }
+          }
+          
+          return fetchedListing
+        })
+        
+        return {
+          ...result,
+          listings: mergedListings,
+        }
+      })
     } catch (error) {
       console.error('Error fetching data:', error)
+      // On error, keep existing data (demo listings) visible
     } finally {
       setLoading(false)
+      setIsInitialLoad(false) // Mark initial load as complete
     }
   }, [slug, filters])
 
@@ -1216,7 +1302,8 @@ export default function JobsiteExplorerPage() {
       )}
 
       <main style={pageStyles.main}>
-        {loading ? (
+        {/* Show loading spinner only on non-initial loads, or when we have no listings at all */}
+        {loading && !isInitialLoad && data.listings.length === 0 ? (
           <div style={pageStyles.loadingState}>
             <div style={pageStyles.spinner} />
             <p>Loading housing options...</p>
