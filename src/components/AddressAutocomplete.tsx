@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { MapPin, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 declare global {
   interface Window {
@@ -147,7 +148,7 @@ export function AddressAutocomplete({
   // Use my location button handler
   const handleUseMyLocation = useCallback(async () => {
     if (!isLoaded || !navigator.geolocation) {
-      alert('Geolocation is not supported by your browser')
+      toast.error('Geolocation is not supported by your browser')
       return
     }
 
@@ -197,7 +198,7 @@ export function AddressAutocomplete({
       }
     } catch (error) {
       console.error('Error getting location:', error)
-      alert('Unable to get your location. Please enter an address manually.')
+      toast.error('Unable to get your location. Please enter an address manually.')
     } finally {
       setIsLoadingLocation(false)
     }
