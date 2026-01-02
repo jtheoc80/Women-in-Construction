@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Navbar } from '@/components/Navbar'
 import { AddressAutocomplete, type AddressResult } from '@/components/AddressAutocomplete'
-import { MapPin, Target, X, ChevronLeft, ChevronRight, Upload, Loader2, Building2 } from 'lucide-react'
+import { MapPin, Target, X, ChevronLeft, ChevronRight, Upload, Loader2, Building2, Lock } from 'lucide-react'
+import { useGatedAction, useAuth } from '@/contexts/AuthContext'
 
 // Types based on database schema
 interface PosterProfile {
@@ -39,6 +40,9 @@ interface Listing {
   lng: number | null
   is_active: boolean
   created_at: string
+  // Private field - only visible to owner
+  full_address?: string | null
+  is_owner?: boolean
   // Joined data
   poster_profiles?: PosterProfile | null
   listing_photos?: ListingPhoto[]
@@ -600,6 +604,10 @@ export default function DesignPage() {
   const [loading, setLoading] = useState(true)
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
   
+  // Auth hooks for gating actions
+  const { gateAction } = useGatedAction()
+  const { user } = useAuth()
+  
   // Filters
   const [cityFilter, setCityFilter] = useState('')
   const [rentMaxFilter, setRentMaxFilter] = useState<number | ''>('')
@@ -673,7 +681,10 @@ export default function DesignPage() {
   }
 
   function handlePostListingClick() {
-    setShowPostModal(true)
+    // Gate posting behind auth + profile completion
+    gateAction(() => {
+      setShowPostModal(true)
+    }, '/design')
   }
 
   function handleRequestIntroClick() {
@@ -683,7 +694,7 @@ export default function DesignPage() {
   // Handle address selection from autocomplete
   function handleAddressSelect(result: AddressResult) {
     setNewListingLocation({
-      address: result.formattedAddress,
+      address: result.formattedAddress, // Full address stored for submission
       city: result.city,
       area: result.area,
       placeId: result.placeId,
@@ -724,6 +735,8 @@ export default function DesignPage() {
             placeId: newListingLocation.placeId || undefined,
             lat: newListingLocation.lat || undefined,
             lng: newListingLocation.lng || undefined,
+            // Store full address privately - only owner can see this
+            fullAddress: newListingLocation.address || undefined,
           },
           photoPaths: newListingPhotos.length > 0 ? newListingPhotos : undefined,
           website: honeypot,
@@ -997,6 +1010,20 @@ export default function DesignPage() {
                 )}
               </div>
 
+              {/* Full Address - Only visible to the listing owner */}
+              {user && selectedListing.user_id === user.id && selectedListing.full_address && (
+                <div style={styles.privateAddressBlock}>
+                  <div style={styles.privateAddressHeader}>
+                    <Lock size={14} />
+                    <span>Your Private Address</span>
+                  </div>
+                  <p style={styles.privateAddressText}>{selectedListing.full_address}</p>
+                  <p style={styles.privateAddressNote}>
+                    Only you can see this. Others see only the city and neighborhood.
+                  </p>
+                </div>
+              )}
+
               {selectedListing.tags && selectedListing.tags.length > 0 && (
                 <div style={styles.tagsContainer}>
                   {selectedListing.tags.map((tag) => (
@@ -1113,13 +1140,17 @@ export default function DesignPage() {
               <div style={styles.formSection}>
                 <h3 style={styles.formSectionTitle}>Location</h3>
                 <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Address</label>
+                  <label style={styles.formLabel}>
+                    <Lock size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} />
+                    Address (Private)
+                  </label>
                   <AddressAutocomplete
                     onSelect={handleAddressSelect}
                     placeholder="Start typing an address..."
                   />
-                  <p style={styles.formHint}>
-                    Select an address to auto-fill city and area below
+                  <p style={styles.formHintPrivate}>
+                    <Lock size={12} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} />
+                    Your full address is kept private for safety. Only you can see it. Others will only see the city and neighborhood.
                   </p>
                 </div>
                 <div style={styles.formRow}>
@@ -1760,6 +1791,33 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 600,
     color: '#1e293b',
   },
+  privateAddressBlock: {
+    background: 'linear-gradient(135deg, rgba(13, 148, 136, 0.08) 0%, rgba(13, 148, 136, 0.04) 100%)',
+    border: '1px solid rgba(13, 148, 136, 0.2)',
+    borderRadius: '12px',
+    padding: '16px',
+    marginBottom: '24px',
+  },
+  privateAddressHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    color: '#0d9488',
+    fontWeight: 600,
+    fontSize: '0.85rem',
+    marginBottom: '8px',
+  },
+  privateAddressText: {
+    color: '#1e293b',
+    fontSize: '0.95rem',
+    fontWeight: 500,
+    marginBottom: '8px',
+  },
+  privateAddressNote: {
+    color: '#64748b',
+    fontSize: '0.8rem',
+    fontStyle: 'italic',
+  },
   tagsContainer: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -1944,6 +2002,16 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#94a3b8',
     marginTop: '4px',
     marginBottom: '8px',
+  },
+  formHintPrivate: {
+    fontSize: '0.8rem',
+    color: '#0d9488',
+    marginTop: '8px',
+    marginBottom: '8px',
+    padding: '8px 12px',
+    background: 'rgba(13, 148, 136, 0.08)',
+    borderRadius: '6px',
+    borderLeft: '3px solid #0d9488',
   },
   formInput: {
     padding: '10px 14px',
