@@ -3,7 +3,6 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
-import { SiteSistersMark } from '@/components/SiteSistersMark'
 import { ChevronDown, User, Inbox, LogOut, Settings, Link2 } from 'lucide-react'
 import { InviteDialog } from '@/components/InviteDialog'
 
@@ -14,20 +13,7 @@ export type LocalProfile = {
   role?: string
 }
 
-interface ProfilePillProps {
-  /** Legacy profile from localStorage - deprecated, use auth profile instead */
-  profile?: LocalProfile | null
-  onEditProfile?: () => void
-  onGoToListings?: () => void
-  onSafety?: () => void
-}
-
-export function ProfilePill({
-  profile: _legacyProfile,
-  onEditProfile: _legacyEdit,
-  onGoToListings: _legacyListings,
-  onSafety: _legacySafety,
-}: ProfilePillProps) {
+export function ProfilePill() {
   const { user, profile, loading, signOut } = useAuth()
   const [open, setOpen] = React.useState(false)
   const rootRef = React.useRef<HTMLDivElement | null>(null)

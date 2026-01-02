@@ -24,6 +24,8 @@ export function AccountProfileForm({ initialProfile }: { initialProfile: Profile
 
   const [firstName, setFirstName] = useState(initialProfile?.first_name || '')
   const [homeCity, setHomeCity] = useState(initialProfile?.home_city || '')
+  const [company, setCompany] = useState(initialProfile?.company || '')
+  const [role, setRole] = useState(initialProfile?.role || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -36,7 +38,7 @@ export function AccountProfileForm({ initialProfile }: { initialProfile: Profile
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) {
-      router.push(`/signup?next=${encodeURIComponent('/account')}`)
+      router.push(`/sign-in?next=${encodeURIComponent('/account')}`)
       return
     }
 
@@ -48,6 +50,8 @@ export function AccountProfileForm({ initialProfile }: { initialProfile: Profile
       const payload = {
         first_name: firstName.trim() || null,
         home_city: homeCity.trim() || null,
+        company: company.trim() || null,
+        role: role.trim() || null,
         display_name: (firstName.trim() || 'New user').trim(),
       }
 
@@ -89,13 +93,14 @@ export function AccountProfileForm({ initialProfile }: { initialProfile: Profile
         <div className="mt-5 space-y-4">
           <div className="space-y-2">
             <Label htmlFor="first_name" className="text-slate-700">
-              First name
+              First name <span className="text-red-500">*</span>
             </Label>
             <Input
               id="first_name"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               placeholder="Sarah"
+              className="h-12 text-base"
             />
             <p className="text-xs text-slate-500">
               Display name: <strong className="text-slate-700">{displayNamePreview}</strong>
@@ -104,13 +109,40 @@ export function AccountProfileForm({ initialProfile }: { initialProfile: Profile
 
           <div className="space-y-2">
             <Label htmlFor="home_city" className="text-slate-700">
-              Home base city
+              Home base city <span className="text-red-500">*</span>
             </Label>
             <Input
               id="home_city"
               value={homeCity}
               onChange={(e) => setHomeCity(e.target.value)}
               placeholder="Phoenix, AZ"
+              className="h-12 text-base"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="company" className="text-slate-700">
+              Company
+            </Label>
+            <Input
+              id="company"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              placeholder="Turner Construction"
+              className="h-12 text-base"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="role" className="text-slate-700">
+              Role / Title
+            </Label>
+            <Input
+              id="role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              placeholder="Electrician, Site Supervisor, etc."
+              className="h-12 text-base"
             />
           </div>
 
@@ -119,7 +151,11 @@ export function AccountProfileForm({ initialProfile }: { initialProfile: Profile
             <p className="text-sm text-emerald-700">Saved.</p>
           )}
 
-          <Button type="submit" disabled={saving} className="w-full">
+          <Button 
+            type="submit" 
+            disabled={saving} 
+            className="h-12 w-full bg-teal-600 text-base font-semibold hover:bg-teal-500"
+          >
             {saving ? 'Saving…' : onboarding ? 'Save & continue' : 'Save'}
           </Button>
         </div>
@@ -131,4 +167,3 @@ export function AccountProfileForm({ initialProfile }: { initialProfile: Profile
     </form>
   )
 }
-
