@@ -41,7 +41,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # Server-side only, never expose!
 
 # Site URL (required for email verification links in production)
-NEXT_PUBLIC_SITE_URL=https://your-production-domain.com
+NEXT_PUBLIC_SITE_URL=https://sitesistersconstruction.com
 
 # Google Maps API (required for address autocomplete)
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
@@ -72,7 +72,7 @@ Add these URLs to the **Redirect URLs** list:
 http://localhost:3000/auth/callback
 
 # Production
-https://your-production-domain.com/auth/callback
+https://sitesistersconstruction.com/auth/callback
 
 # Vercel preview deployments (if using Vercel)
 https://*-your-team.vercel.app/auth/callback
