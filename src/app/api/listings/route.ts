@@ -1,22 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-admin'
+import { createServerClient } from '@supabase/ssr'
 
 // Configuration
 const RATE_LIMIT_BUCKET = 'post_listing'
 const RATE_LIMIT_WINDOW = 3600 // 1 hour in seconds
 const RATE_LIMIT_MAX = 5 // max 5 listings per hour per IP
 
-// Get client IP from request
-function getClientIP(req: NextRequest): string {
-  const forwarded = req.headers.get('x-forwarded-for')
-  if (forwarded) {
-    return forwarded.split(',')[0].trim()
-  }
-  const realIP = req.headers.get('x-real-ip')
-  if (realIP) {
-    return realIP
-  }
-  return '127.0.0.1'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+
+// Create a server client for auth verification
+async function createAuthClient(req: NextRequest) {
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return req.cookies.getAll()
+      },
+      setAll() {
+        // Not setting cookies in API routes
+      },
+    },
+  })
 }
 
 // Check and update rate limit
@@ -86,6 +91,7 @@ interface ListingInput {
   placeId?: string
   lat?: number
   lng?: number
+  fullAddress?: string
 }
 
 interface CreateListingRequest {
@@ -148,9 +154,11 @@ function validateRequest(body: unknown): { valid: true; data: CreateListingReque
  * POST /api/listings
  * Create a new listing with profile, contact info, and photos
  * 
+ * REQUIRES: Authenticated user with a complete profile (first_name and home_city)
+ * 
  * Request body:
  * - profile: { displayName, company, role?, contactPreference, contactValue }
- * - listing: { title?, city, area?, rentMin?, rentMax?, moveInISO?, roomType, commuteArea?, tags?, bio?, placeId?, lat?, lng? }
+ * - listing: { title?, city, area?, rentMin?, rentMax?, moveInISO?, roomType, commuteArea?, tags?, bio?, placeId?, lat?, lng?, fullAddress? }
  * - photoPaths?: string[] (returned from /api/upload)
  * - website: honeypot field (should be empty)
  * 
@@ -160,9 +168,54 @@ export async function POST(req: NextRequest) {
   try {
     const adminClient = createAdminClient()
 
-    // Rate limiting
-    const clientIP = getClientIP(req)
-    const { allowed, remaining } = await checkRateLimit(adminClient, clientIP)
+    // ========================================
+    // 1. AUTHENTICATION CHECK
+    // ========================================
+    const authClient = await createAuthClient(req)
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { ok: false, error: 'You must be logged in to post a listing' },
+        { status: 401 }
+      )
+    }
+
+    // ========================================
+    // 2. PROFILE COMPLETION CHECK
+    // ========================================
+    const { data: userProfile, error: profileCheckError } = await adminClient
+      .from('profiles')
+      .select('id, first_name, home_city')
+      .eq('id', user.id)
+      .single()
+
+    if (profileCheckError || !userProfile) {
+      return NextResponse.json(
+        { ok: false, error: 'Profile not found. Please complete your profile first.' },
+        { status: 403 }
+      )
+    }
+
+    const isProfileComplete = Boolean(
+      userProfile.first_name && 
+      userProfile.first_name.trim() !== '' && 
+      userProfile.home_city && 
+      userProfile.home_city.trim() !== ''
+    )
+
+    if (!isProfileComplete) {
+      return NextResponse.json(
+        { ok: false, error: 'Please complete your profile before posting a listing. You need to set your first name and home city.' },
+        { status: 403 }
+      )
+    }
+
+    // ========================================
+    // 3. RATE LIMITING
+    // ========================================
+    // Use user ID for rate limiting authenticated users
+    const { allowed, remaining } = await checkRateLimit(adminClient, user.id)
 
     if (!allowed) {
       return NextResponse.json(
@@ -178,7 +231,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Parse and validate request body
+    // ========================================
+    // 4. PARSE AND VALIDATE REQUEST
+    // ========================================
     let body: unknown
     try {
       body = await req.json()
@@ -193,7 +248,9 @@ export async function POST(req: NextRequest) {
 
     const { profile, listing, photoPaths } = validation.data
 
-    // 1. Create poster profile
+    // ========================================
+    // 5. CREATE POSTER PROFILE (for display purposes)
+    // ========================================
     const { data: profileData, error: profileError } = await adminClient
       .from('poster_profiles')
       .insert({
@@ -209,11 +266,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Failed to create profile' }, { status: 500 })
     }
 
-    const profileId = profileData.id
+    const posterProfileId = profileData.id
 
-    // 2. Create profile contact (private)
+    // ========================================
+    // 6. CREATE PROFILE CONTACT (private)
+    // ========================================
     const { error: contactError } = await adminClient.from('profile_contacts').insert({
-      profile_id: profileId,
+      profile_id: posterProfileId,
       contact_preference: profile.contactPreference,
       contact_value: profile.contactValue.trim(),
     })
@@ -221,15 +280,18 @@ export async function POST(req: NextRequest) {
     if (contactError) {
       console.error('Error creating contact:', contactError)
       // Clean up profile
-      await adminClient.from('poster_profiles').delete().eq('id', profileId)
+      await adminClient.from('poster_profiles').delete().eq('id', posterProfileId)
       return NextResponse.json({ ok: false, error: 'Failed to save contact information' }, { status: 500 })
     }
 
-    // 3. Create listing
+    // ========================================
+    // 7. CREATE LISTING (with user_id for ownership)
+    // ========================================
     const { data: listingData, error: listingError } = await adminClient
       .from('listings')
       .insert({
-        poster_profile_id: profileId,
+        user_id: user.id, // Associate with authenticated user for ownership
+        poster_profile_id: posterProfileId,
         title: listing.title?.trim() || null,
         city: listing.city.trim(),
         area: listing.area?.trim() || null,
@@ -243,6 +305,7 @@ export async function POST(req: NextRequest) {
         place_id: listing.placeId || null,
         lat: listing.lat || null,
         lng: listing.lng || null,
+        full_address: listing.fullAddress?.trim() || null, // Store full address privately
         is_active: true,
       })
       .select('id')
@@ -251,14 +314,16 @@ export async function POST(req: NextRequest) {
     if (listingError || !listingData) {
       console.error('Error creating listing:', listingError)
       // Clean up profile and contact
-      await adminClient.from('profile_contacts').delete().eq('profile_id', profileId)
-      await adminClient.from('poster_profiles').delete().eq('id', profileId)
+      await adminClient.from('profile_contacts').delete().eq('profile_id', posterProfileId)
+      await adminClient.from('poster_profiles').delete().eq('id', posterProfileId)
       return NextResponse.json({ ok: false, error: 'Failed to create listing' }, { status: 500 })
     }
 
     const listingId = listingData.id
 
-    // 4. Insert listing photos if provided
+    // ========================================
+    // 8. INSERT LISTING PHOTOS (if provided)
+    // ========================================
     if (photoPaths && photoPaths.length > 0) {
       const photoRecords = photoPaths.map((path, index) => ({
         listing_id: listingId,
