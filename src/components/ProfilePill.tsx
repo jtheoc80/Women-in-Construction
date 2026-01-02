@@ -1,16 +1,28 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 import { SiteLogoMark } from '@/components/SiteLogo'
+import { ChevronDown, User, Inbox, LogOut, Settings, Link2 } from 'lucide-react'
+import { InviteDialog } from '@/components/InviteDialog'
 
-// Legacy type for localStorage profiles (being removed)
+// Legacy type for localStorage profiles (kept for backwards compatibility)
 export type LocalProfile = {
   displayName: string
   company: string
   role?: string
 }
 
-export function ProfilePill() {
+interface ProfilePillProps {
+  /** Legacy profile prop - deprecated, use auth instead */
+  profile?: LocalProfile | null
+  onEditProfile?: () => void
+  onGoToListings?: () => void
+  onSafety?: () => void
+}
+
+export function ProfilePill({ profile: legacyProfile, onEditProfile, onGoToListings, onSafety }: ProfilePillProps) {
   const { user, profile, loading, signOut } = useAuth()
   const [open, setOpen] = React.useState(false)
   const rootRef = React.useRef<HTMLDivElement | null>(null)
@@ -59,18 +71,9 @@ export function ProfilePill() {
     )
   }
 
-  // Get initials
-  const displayName = profile?.display_name || profile?.first_name || 'User'
-  const initials = (() => {
-    const name = displayName.trim()
-    if (!name) return 'U'
-    const parts = name.split(/\s+/).filter(Boolean)
-    const first = parts[0]?.[0] || 'U'
-    const second = parts.length > 1 ? parts[parts.length - 1]?.[0] : ''
-    return (first + (second || '')).toUpperCase()
-  })()
-
-  const homeCity = profile?.home_city
+  // Use auth profile, fall back to legacy if provided
+  const displayName = profile?.display_name || profile?.first_name || legacyProfile?.displayName || 'User'
+  const homeCity = profile?.home_city || legacyProfile?.company
 
   return (
     <div ref={rootRef} className="relative">
@@ -120,38 +123,87 @@ export function ProfilePill() {
 
           {/* Menu items */}
           <div className="py-1">
-            <Link
-              href="/account"
-              role="menuitem"
-              className="flex min-h-[44px] w-full items-center gap-3 px-4 py-2 text-left text-sm text-white/90 hover:bg-white/10"
-              onClick={() => setOpen(false)}
-            >
-              <Settings className="h-4 w-4 text-white/60" />
-              My profile
-            </Link>
+            {onEditProfile ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="flex min-h-[44px] w-full items-center gap-3 px-4 py-2 text-left text-sm text-white/90 hover:bg-white/10"
+                onClick={() => {
+                  setOpen(false)
+                  onEditProfile()
+                }}
+              >
+                <Settings className="h-4 w-4 text-white/60" />
+                Edit profile
+              </button>
+            ) : (
+              <Link
+                href="/account"
+                role="menuitem"
+                className="flex min-h-[44px] w-full items-center gap-3 px-4 py-2 text-left text-sm text-white/90 hover:bg-white/10"
+                onClick={() => setOpen(false)}
+              >
+                <Settings className="h-4 w-4 text-white/60" />
+                My profile
+              </Link>
+            )}
             
-            <Link
-              href="/inbox"
-              role="menuitem"
-              className="flex min-h-[44px] w-full items-center gap-3 px-4 py-2 text-left text-sm text-white/90 hover:bg-white/10"
-              onClick={() => setOpen(false)}
-            >
-              <Inbox className="h-4 w-4 text-white/60" />
-              Inbox
-            </Link>
+            {onGoToListings && (
+              <button
+                type="button"
+                role="menuitem"
+                className="flex min-h-[44px] w-full items-center gap-3 px-4 py-2 text-left text-sm text-white/90 hover:bg-white/10"
+                onClick={() => {
+                  setOpen(false)
+                  onGoToListings()
+                }}
+              >
+                <Inbox className="h-4 w-4 text-white/60" />
+                My listings
+              </button>
+            )}
 
-            <InviteDialog
-              trigger={
-                <button
-                  role="menuitem"
-                  className="flex min-h-[44px] w-full items-center gap-3 px-4 py-2 text-left text-sm text-white/90 hover:bg-white/10"
-                  onClick={() => setOpen(false)}
-                >
-                  <Link2 className="h-4 w-4 text-white/60" />
-                  Invite friends
-                </button>
-              }
-            />
+            {!onGoToListings && (
+              <Link
+                href="/inbox"
+                role="menuitem"
+                className="flex min-h-[44px] w-full items-center gap-3 px-4 py-2 text-left text-sm text-white/90 hover:bg-white/10"
+                onClick={() => setOpen(false)}
+              >
+                <Inbox className="h-4 w-4 text-white/60" />
+                Inbox
+              </Link>
+            )}
+
+            {onSafety && (
+              <button
+                type="button"
+                role="menuitem"
+                className="flex min-h-[44px] w-full items-center gap-3 px-4 py-2 text-left text-sm text-white/90 hover:bg-white/10"
+                onClick={() => {
+                  setOpen(false)
+                  onSafety()
+                }}
+              >
+                <Link2 className="h-4 w-4 text-white/60" />
+                Safety
+              </button>
+            )}
+
+            {!onSafety && (
+              <InviteDialog
+                trigger={
+                  <button
+                    role="menuitem"
+                    className="flex min-h-[44px] w-full items-center gap-3 px-4 py-2 text-left text-sm text-white/90 hover:bg-white/10"
+                    onClick={() => setOpen(false)}
+                  >
+                    <Link2 className="h-4 w-4 text-white/60" />
+                    Invite friends
+                  </button>
+                }
+              />
+            )}
           </div>
 
           {/* Sign out */}

@@ -1,15 +1,15 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { SiteLogo, SiteLogoMark } from '@/components/SiteLogo'
+import { useState, useEffect } from 'react'
+import { SiteLogo } from '@/components/SiteLogo'
 import { Button } from '@/components/ui/button'
-import { AddressAutocomplete, type AddressResult } from '@/components/AddressAutocomplete'
-import { ProfileModal } from '@/components/ProfileModal'
-import { ProfilePill, type LocalProfile } from '@/components/ProfilePill'
-import { MapPin, Target, X, ChevronLeft, ChevronRight, Upload, Loader2, Building2, Lock } from 'lucide-react'
+import { ProfilePill } from '@/components/ProfilePill'
+import { BottomSheet, SlideOver } from '@/components/BottomSheet'
+import { PostListingModal } from '@/components/PostListingModal'
+import { MapPin, Target, ChevronLeft, ChevronRight, Filter, Loader2, Building2, Lock } from 'lucide-react'
 import { useGatedAction, useAuth } from '@/contexts/AuthContext'
 
-// Types based on database schema
+// Types
 interface PosterProfile {
   id: string
   display_name: string
@@ -315,36 +315,8 @@ export default function DesignPage() {
               <span className="hidden sm:inline">+ Post Listing</span>
               <span className="sm:hidden">+ Post</span>
             </Button>
-
-            {localProfile ? (
-              <ProfilePill
-                profile={localProfile}
-                onEditProfile={() => setShowProfileModal(true)}
-                onGoToListings={scrollToListings}
-                onSafety={() =>
-                  showToastMessage('Safety: use “Report” on any listing; full addresses stay private by default.')
-                }
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowProfileModal(true)}
-                className="inline-flex h-11 items-center gap-3 rounded-2xl bg-white/10 px-3 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
-              >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
-                  <SiteLogoMark className="h-5 w-5" />
-                </span>
-                <span className="hidden flex-col text-left sm:flex">
-                  <span className="text-sm font-semibold leading-tight text-white">
-                    Create profile
-                  </span>
-                  <span className="text-xs text-white/70">Add your name + company</span>
-                </span>
-                <span className="ml-0.5 text-xs text-white/80" aria-hidden="true">
-                  ▼
-                </span>
-              </button>
-            )}
+            
+            <ProfilePill />
           </div>
         </div>
       </header>

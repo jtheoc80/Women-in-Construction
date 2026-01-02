@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
-import { BrandMark } from '@/components/BrandMark'
+import { SiteLogo } from '@/components/SiteLogo'
 import { Mail, Lock, User, Loader2, ArrowRight, Check } from 'lucide-react'
 
 export function SignUpClient() {
@@ -88,7 +88,7 @@ export function SignUpClient() {
         {/* Header */}
         <header className="sticky top-0 z-50 flex h-16 items-center justify-center border-b border-white/10 bg-slate-950/80 px-4 backdrop-blur-lg">
           <Link href="/" className="flex items-center gap-2">
-            <BrandMark />
+            <SiteLogo />
             <span className="text-lg font-bold tracking-tight text-white">SiteSisters</span>
           </Link>
         </header>
@@ -132,7 +132,7 @@ export function SignUpClient() {
       {/* Header */}
       <header className="sticky top-0 z-50 flex h-16 items-center justify-center border-b border-white/10 bg-slate-950/80 px-4 backdrop-blur-lg">
         <Link href="/" className="flex items-center gap-2">
-          <BrandMark />
+          <SiteLogo />
           <span className="text-lg font-bold tracking-tight text-white">SiteSisters</span>
         </Link>
       </header>
