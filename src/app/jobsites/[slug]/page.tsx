@@ -10,6 +10,7 @@ import {
   ListingImage,
   getListingHeroImageUrl,
 } from '@/components/ListingImage'
+import { ListingPhotoGallery } from '@/components/PhotoGallery'
 import {
   AlertTriangle,
   Lightbulb,
@@ -633,8 +634,6 @@ function ListingDrawer({
 
   if (!listing) return null
 
-  const photoCount = getPhotoCount(listing)
-
   const handleRequestIntroClick = () => {
     gateAction(() => setShowIntroModal(true))
   }
@@ -680,21 +679,8 @@ function ListingDrawer({
           <X aria-hidden="true" size={18} />
         </button>
 
-        {/* Photo Gallery with 16:9 aspect ratio */}
-        <div style={drawerStyles.photoGallery}>
-          <ListingImage
-            src={getListingHeroImageUrl(listing)}
-            alt="Listing"
-            aspectRatio="16/9"
-            className="w-full"
-            sizes="(max-width: 480px) 100vw, 480px"
-          />
-          {photoCount > 1 && (
-            <div style={drawerStyles.photoCountBadge}>
-              {photoCount} photos
-            </div>
-          )}
-        </div>
+        {/* Photo Gallery with full mobile support */}
+        <ListingPhotoGallery listing={listing} />
 
         <div style={drawerStyles.content}>
           <h2 style={drawerStyles.title}>{listing.area || listing.city}</h2>
@@ -850,21 +836,6 @@ const drawerStyles = {
     justifyContent: 'center',
     borderRadius: '8px',
     zIndex: 10,
-  } as React.CSSProperties,
-  photoGallery: {
-    position: 'relative',
-    background: '#f1f5f9',
-  } as React.CSSProperties,
-  photoCountBadge: {
-    position: 'absolute',
-    bottom: '12px',
-    right: '12px',
-    background: 'rgba(0,0,0,0.7)',
-    color: 'white',
-    padding: '6px 12px',
-    borderRadius: '6px',
-    fontSize: '0.85rem',
-    fontWeight: 500,
   } as React.CSSProperties,
   content: {
     padding: '24px',
