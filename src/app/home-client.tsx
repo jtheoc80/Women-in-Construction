@@ -52,6 +52,11 @@ interface Listing {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 
 function getPhotoUrl(storagePath: string): string {
+  // If it's already a full URL (external image), return as-is
+  if (storagePath.startsWith('http://') || storagePath.startsWith('https://')) {
+    return storagePath
+  }
+  // Otherwise, construct Supabase storage URL
   if (!SUPABASE_URL) return ''
   return `${SUPABASE_URL}/storage/v1/object/public/listing-photos/${storagePath}`
 }
