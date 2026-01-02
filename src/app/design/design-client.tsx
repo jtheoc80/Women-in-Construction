@@ -6,12 +6,9 @@ import { Button } from '@/components/ui/button'
 import { ProfilePill } from '@/components/ProfilePill'
 import { BottomSheet, SlideOver } from '@/components/BottomSheet'
 import { PostListingModal } from '@/components/PostListingModal'
-import {
-  ListingCardImage,
-  ListingImage,
-  getListingPhotoUrls,
-} from '@/components/ListingImage'
-import { MapPin, Target, ChevronLeft, ChevronRight, Filter, Loader2, Building2, Lock } from 'lucide-react'
+import { ListingCardImage } from '@/components/ListingImage'
+import { ListingPhotoGallery } from '@/components/PhotoGallery'
+import { MapPin, Target, Filter, Loader2, Building2, Lock } from 'lucide-react'
 import { useGatedAction, useAuth } from '@/contexts/AuthContext'
 
 // Types
@@ -146,58 +143,7 @@ function formatDate(dateStr: string | null): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-// Photo Carousel Component with next/image
-function PhotoCarousel({ photos }: { photos: string[] }) {
-  const [currentIndex, setCurrentIndex] = useState(0)
-
-  if (photos.length === 0) {
-    return (
-      <div className="flex w-full items-center justify-center rounded-xl bg-gradient-to-br from-slate-800 to-slate-700" style={{ aspectRatio: '16/9' }}>
-        <span className="text-sm font-medium text-white/70">Photo coming soon</span>
-      </div>
-    )
-  }
-
-  return (
-    <div className="relative w-full overflow-hidden rounded-xl bg-slate-800" style={{ aspectRatio: '16/9' }}>
-      <ListingImage
-        src={photos[currentIndex]}
-        alt={`Photo ${currentIndex + 1}`}
-        fill
-        className="absolute inset-0"
-        sizes="(max-width: 768px) 100vw, 50vw"
-      />
-      {photos.length > 1 && (
-        <>
-          <button
-            onClick={() => setCurrentIndex(prev => (prev === 0 ? photos.length - 1 : prev - 1))}
-            className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg z-10"
-            aria-label="Previous photo"
-          >
-            <ChevronLeft className="h-5 w-5 text-slate-800" />
-          </button>
-          <button
-            onClick={() => setCurrentIndex(prev => (prev === photos.length - 1 ? 0 : prev + 1))}
-            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg z-10"
-            aria-label="Next photo"
-          >
-            <ChevronRight className="h-5 w-5 text-slate-800" />
-          </button>
-          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5 z-10">
-            {photos.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentIndex(idx)}
-                className={`h-2 w-2 rounded-full ${idx === currentIndex ? 'bg-white' : 'bg-white/50'}`}
-                aria-label={`Go to photo ${idx + 1}`}
-              />
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
+// Note: PhotoCarousel replaced with ListingPhotoGallery from PhotoGallery.tsx
 
 export default function DesignClient() {
   const [listings, setListings] = useState<Listing[]>([])
@@ -516,7 +462,7 @@ export default function DesignClient() {
       >
         {selectedListing && (
           <div className="p-4 sm:p-6">
-            <PhotoCarousel photos={getListingPhotoUrls(selectedListing)} />
+            <ListingPhotoGallery listing={selectedListing} className="rounded-xl" />
 
             <h2 className="mt-4 text-xl font-bold text-white sm:text-2xl">
               {selectedListing.title || selectedListing.city}

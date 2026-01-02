@@ -17,20 +17,41 @@
 5. **No consistent aspect ratio** - Photo containers vary in size
 6. **Upload pipeline** - No webp conversion (sharp not installed)
 
-### Files Affected:
-- `src/components/SiteLogo.tsx` - uses `/logo.png` which doesn't exist
-- `src/app/home-client.tsx` - uses raw `<img>` for listing photos
-- `src/app/design/design-client.tsx` - uses raw `<img>` for listing photos
-- `src/app/jobsites/[slug]/page.tsx` - uses raw `<img>` for listing photos
-- `src/components/PostListingModal.tsx` - uses raw `<img>` for upload previews
-- `next.config.js` - missing image domain configuration
-- `src/app/api/upload/route.ts` - no webp conversion
+---
+
+## 15:30 - Major Progress
+
+### Completed:
+
+1. ✅ **Fixed Logo** - Created inline SVG logo (hardhat/house icon in teal)
+2. ✅ **Added next/image domain config** - Supabase Storage + Unsplash configured
+3. ✅ **Created ListingImage component** - Reusable component with:
+   - next/image for optimization
+   - 16:9 aspect ratio (configurable)
+   - Error handling with graceful fallback
+   - Loading placeholder with skeleton animation
+   - Photo count badge via ListingCardImage
+4. ✅ **Updated all image usages**:
+   - `home-client.tsx` - Uses ListingCardImage
+   - `design-client.tsx` - Uses ListingImage + ListingCardImage  
+   - `jobsites/[slug]/page.tsx` - Uses ListingImage
+   - `PostListingModal.tsx` - Uses ListingImage for previews
+5. ✅ **Implemented optimized upload pipeline**:
+   - Sharp for WebP conversion (85% quality)
+   - Auto-resize images >2048px
+   - Auto-rotate based on EXIF
+   - Strip metadata for privacy
+   - Support for JPEG, PNG, WebP, GIF input
+   - 10MB max file size (before conversion)
+
+### Commits Made:
+1. `ebaac07` - Fix: Replace broken logo with SVG, add ListingImage component
+2. `bfaf676` - Update design and jobsites pages to use ListingImage component
+3. `ae0de9a` - Implement optimized upload pipeline with WebP conversion
 
 ### Next Steps:
-1. Create placeholder logo or inline SVG
-2. Add Supabase domain to next.config.js images
-3. Create reusable `ListingImage` component with next/image
-4. Add sharp for webp conversion
-5. Update all image usages
+1. Verify RLS policies for anonymous image access
+2. Implement mobile gallery/lightbox with touch support
+3. Final verification of all acceptance criteria
 
 ---
