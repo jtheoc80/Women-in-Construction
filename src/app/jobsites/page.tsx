@@ -121,7 +121,10 @@ export default function JobsitesIndexPage() {
         (j) =>
           j.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           j.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          j.state.toLowerCase().includes(searchQuery.toLowerCase())
+          j.state.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          j.operator?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          j.county_or_parish?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          j.nearest_town?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : jobsites
 
@@ -589,34 +592,70 @@ function JobsiteCard({
   onClick: () => void
 }) {
   const Icon = getJobsiteIcon(jobsite)
+  const isActiveBuild = jobsite.status === 'active_build'
+  
+  // Format location string
+  const locationParts = []
+  if (jobsite.nearest_town || jobsite.city) {
+    locationParts.push(jobsite.nearest_town || jobsite.city)
+  }
+  if (jobsite.county_or_parish) {
+    locationParts.push(jobsite.county_or_parish)
+  }
+  locationParts.push(jobsite.state)
+  const locationString = locationParts.join(', ')
+  
   return (
     <button
       onClick={onClick}
       aria-label={`View jobsite: ${jobsite.name}`}
-      className="group flex w-full items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-slate-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
+      className="group flex w-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-slate-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
     >
-      <div className="rounded-xl bg-slate-100 p-3 text-slate-700">
-        <Icon className="h-6 w-6" aria-hidden="true" />
-      </div>
+      <div className="flex items-start gap-4">
+        <div className="rounded-xl bg-slate-100 p-3 text-slate-700">
+          <Icon className="h-6 w-6" aria-hidden="true" />
+        </div>
 
-      <div className="min-w-0 flex-1">
-        <h3 className="truncate text-base font-semibold text-slate-900">
-          {jobsite.name}
-        </h3>
-        <p className="mt-1 text-sm text-slate-600">
-          {jobsite.city}, {jobsite.state}
-        </p>
-        {jobsite.description && (
-          <p className="mt-1 line-clamp-1 text-sm text-slate-500">
-            {jobsite.description}
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base font-semibold text-slate-900">
+            {jobsite.name}
+          </h3>
+          <p className="mt-1 text-sm text-slate-600">
+            {locationString}
           </p>
-        )}
-      </div>
+          
+          {/* Operator chip and status badge */}
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {jobsite.operator && (
+              <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
+                {jobsite.operator}
+              </span>
+            )}
+            {isActiveBuild && (
+              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                🚧 Active Build
+              </span>
+            )}
+            {jobsite.project_type && (
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                {jobsite.project_type}
+              </span>
+            )}
+          </div>
+        </div>
 
-      <ArrowRight
-        className="h-5 w-5 flex-shrink-0 text-slate-400 transition group-hover:translate-x-0.5"
-        aria-hidden="true"
-      />
+        <ArrowRight
+          className="h-5 w-5 flex-shrink-0 text-slate-400 transition group-hover:translate-x-0.5"
+          aria-hidden="true"
+        />
+      </div>
+      
+      {/* Notes section */}
+      {jobsite.notes && (
+        <p className="line-clamp-2 text-sm text-slate-500 pl-[52px]">
+          {jobsite.notes}
+        </p>
+      )}
     </button>
   )
 }
