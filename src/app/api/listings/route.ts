@@ -162,14 +162,30 @@ function validateRequest(body: unknown): { valid: true; data: CreateListingReque
  * GET /api/listings
  * Fetch all active listings with related profile data and photo fields stored on listings
  * 
+ * PUBLIC ENDPOINT - No authentication required
+ * 
  * Response: Array of listings with poster_profiles, cover_photo_url, photo_urls
  */
 export async function GET() {
+  console.log('[Listings GET] Fetching active listings...')
+  
   try {
-    const adminClient = createAdminClient()
+    // Check if Supabase is configured
+    if (!supabaseUrl) {
+      console.log('[Listings GET] Supabase not configured, returning empty array')
+      return NextResponse.json([])
+    }
 
-    // Fetch all active listings with related data
-    // Use explicit foreign key hint (poster_profile_id) for PostgREST to find the relationship
+    let adminClient
+    try {
+      adminClient = createAdminClient()
+    } catch (clientError) {
+      console.error('[Listings GET] Failed to create admin client:', clientError)
+      // Return empty array instead of error for graceful degradation
+      return NextResponse.json([])
+    }
+
+    // First, try to fetch with poster_profiles join
     const { data: listings, error } = await adminClient
       .from('listings')
       .select(`
@@ -204,17 +220,53 @@ export async function GET() {
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Error fetching listings:', error)
-      return NextResponse.json(
-        { ok: false, error: 'Failed to fetch listings' },
-        { status: 500 }
-      )
+      console.error('[Listings GET] Error fetching listings with join:', error.message)
+      
+      // Fallback: try without the join if it failed
+      console.log('[Listings GET] Attempting fallback query without poster_profiles join...')
+      const { data: fallbackListings, error: fallbackError } = await adminClient
+        .from('listings')
+        .select(`
+          id,
+          user_id,
+          poster_profile_id,
+          title,
+          city,
+          area,
+          rent_min,
+          rent_max,
+          move_in,
+          room_type,
+          commute_area,
+          details,
+          tags,
+          place_id,
+          lat,
+          lng,
+          is_active,
+          created_at,
+          cover_photo_url,
+          photo_urls
+        `)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+
+      if (fallbackError) {
+        console.error('[Listings GET] Fallback query also failed:', fallbackError.message)
+        return NextResponse.json(
+          { ok: false, error: 'Failed to fetch listings' },
+          { status: 500 }
+        )
+      }
+
+      console.log(`[Listings GET] Fallback success: ${fallbackListings?.length || 0} listings`)
+      return NextResponse.json(fallbackListings || [])
     }
 
-    // Return empty array if no listings found
+    console.log(`[Listings GET] Success: ${listings?.length || 0} listings`)
     return NextResponse.json(listings || [])
   } catch (error) {
-    console.error('Unexpected error fetching listings:', error)
+    console.error('[Listings GET] Unexpected error:', error)
     return NextResponse.json(
       { ok: false, error: 'Failed to fetch listings' },
       { status: 500 }
