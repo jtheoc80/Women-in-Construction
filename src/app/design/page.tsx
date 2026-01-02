@@ -200,14 +200,14 @@ function PhotoCarousel({ photos }: { photos: string[] }) {
         <>
           <button
             onClick={() => setCurrentIndex(prev => (prev === 0 ? photos.length - 1 : prev - 1))}
-            className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg"
+            className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg"
             aria-label="Previous photo"
           >
             <ChevronLeft className="h-5 w-5 text-slate-800" />
           </button>
           <button
             onClick={() => setCurrentIndex(prev => (prev === photos.length - 1 ? 0 : prev + 1))}
-            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg"
+            className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg"
             aria-label="Next photo"
           >
             <ChevronRight className="h-5 w-5 text-slate-800" />
