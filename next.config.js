@@ -2,6 +2,27 @@
 const nextConfig = {
   reactStrictMode: true,
   
+  images: {
+    // Allow images from Supabase Storage and common image CDNs
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.supabase.in',
+        pathname: '/storage/v1/object/public/**',
+      },
+      // Unsplash for demo/placeholder images
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+    ],
+  },
+  
   async redirects() {
     return [
       // Canonicalize auth routes: /sign-up -> /signup
