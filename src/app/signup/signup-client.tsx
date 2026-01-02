@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useCallback } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -70,15 +70,19 @@ interface InviteStatus {
   reason?: string
 }
 
-export function SignupClient() {
+type SignupClientProps = {
+  next?: string | null
+  invite?: string | null
+}
+
+export function SignupClient({ next, invite }: SignupClientProps) {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { user, isProfileComplete, refreshProfile } = useAuth()
 
   const supabase = getSupabaseBrowserClient()
 
-  const nextParam = useMemo(() => safeNextParam(searchParams.get('next')), [searchParams])
-  const inviteCodeFromUrl = useMemo(() => searchParams.get('invite'), [searchParams])
+  const nextParam = useMemo(() => safeNextParam(next ?? null), [next])
+  const inviteCodeFromUrl = useMemo(() => invite ?? null, [invite])
   const defaultAfterAuth = nextParam || '/browse'
 
   const [activeTab, setActiveTab] = useState<'email' | 'phone'>('email')
