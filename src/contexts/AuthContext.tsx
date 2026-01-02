@@ -10,6 +10,8 @@ export interface Profile {
   display_name: string | null
   first_name: string | null
   home_city: string | null
+  company: string | null
+  role: string | null
   created_at: string
   updated_at: string
 }
@@ -31,9 +33,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   const supabase = getSupabaseBrowserClient()
 
+  // Profile is complete if first_name and home_city are set
   const isProfileComplete = Boolean(
     profile?.first_name && 
     profile.first_name.trim() !== '' && 
@@ -45,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, display_name, first_name, home_city, company, role, created_at, updated_at')
         .eq('id', userId)
         .single()
 
@@ -86,7 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
     setSession(null)
     setProfile(null)
-  }, [supabase])
+    router.push('/sign-in')
+  }, [supabase, router])
 
   useEffect(() => {
     // Get initial session
@@ -158,7 +163,6 @@ export function useGatedAction() {
   const router = useRouter()
   const pathname = usePathname()
 
-  // Avoid useSearchParams here to keep pages pre-renderable.
   const currentUrl = pathname
 
   const gateAction = useCallback((action: () => void, nextUrl?: string) => {
@@ -167,7 +171,7 @@ export function useGatedAction() {
     const encodedNext = encodeURIComponent(safeNext)
 
     if (!user) {
-      router.push(`/signup?next=${encodedNext}`)
+      router.push(`/sign-in?next=${encodedNext}`)
       return false
     }
 
