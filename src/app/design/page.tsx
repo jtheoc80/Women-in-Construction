@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { BrandMark } from '@/components/BrandMark'
+import { SiteLogo, SiteLogoMark } from '@/components/SiteLogo'
 import { Button } from '@/components/ui/button'
 import { AddressAutocomplete, type AddressResult } from '@/components/AddressAutocomplete'
-import { SiteSistersMark } from '@/components/SiteSistersMark'
 import { ProfileModal } from '@/components/ProfileModal'
 import { ProfilePill, type LocalProfile } from '@/components/ProfilePill'
 import { MapPin, Target, X, ChevronLeft, ChevronRight, Upload, Loader2, Building2, Lock } from 'lucide-react'
@@ -888,7 +887,7 @@ export default function DesignPage() {
       <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950 px-4 py-4 text-white/90">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <a href="/design" className="flex items-center gap-2">
-            <BrandMark />
+            <SiteLogo />
             <span className="text-xl font-bold tracking-tight text-white sm:text-2xl">
               SiteSisters
             </span>
@@ -919,7 +918,7 @@ export default function DesignPage() {
                 className="inline-flex h-11 items-center gap-3 rounded-2xl bg-white/10 px-3 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
-                  <SiteSistersMark className="h-5 w-5" />
+                  <SiteLogoMark className="h-5 w-5" />
                 </span>
                 <span className="hidden flex-col text-left sm:flex">
                   <span className="text-sm font-semibold leading-tight text-white">
