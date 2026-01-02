@@ -6,6 +6,7 @@ import { Navbar } from '@/components/Navbar'
 import { useGatedAction } from '@/contexts/AuthContext'
 import { PostListingModal } from '@/components/PostListingModal'
 import { ListingCardImage } from '@/components/ListingImage'
+import { ListingDrawer } from '@/components/ListingDrawer'
 import { MapPin, Target, Loader2 } from 'lucide-react'
 
 interface PosterProfile {
@@ -41,6 +42,7 @@ interface Listing {
   photo_urls?: string[] | null
   profiles?: { display_name: string }
   is_demo?: boolean
+  shift?: string | null
 }
 
 function getDisplayName(listing: Listing): string {
@@ -73,6 +75,7 @@ export default function HomeClient() {
   const [error, setError] = useState<string | null>(null)
   const { gateAction } = useGatedAction()
   const [showPostModal, setShowPostModal] = useState(false)
+  const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
 
   const loadListings = useCallback(async () => {
     try {
@@ -155,9 +158,10 @@ export default function HomeClient() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {listings.map((listing, index) => (
-              <div
+              <button
                 key={listing.id}
-                className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+                onClick={() => setSelectedListing(listing)}
+                className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-sm transition-shadow hover:shadow-md"
               >
                 {/* Photo with 16:9 aspect ratio */}
                 <div className="relative">
@@ -204,7 +208,7 @@ export default function HomeClient() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -224,6 +228,12 @@ export default function HomeClient() {
           // Reload listings after successful post
           window.location.reload()
         }}
+      />
+
+      {/* Listing Detail Drawer */}
+      <ListingDrawer
+        listing={selectedListing}
+        onClose={() => setSelectedListing(null)}
       />
     </div>
   )

@@ -50,16 +50,17 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
     tags: ['Parking', 'Wifi', 'Laundry'],
     is_active: true,
     created_at: new Date().toISOString(),
+    shift: 'day',
     poster_profiles: {
       id: 'poster-1',
       display_name: 'Sarah M.',
       company: 'Turner Construction',
       role: 'Project Engineer'
     },
-    cover_photo_url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+    cover_photo_url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
     photo_urls: [
-      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
+      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80'
     ]
   },
   {
@@ -77,15 +78,16 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
     tags: ['Short-term', 'Furnished', 'No Deposit'],
     is_active: true,
     created_at: new Date(Date.now() - 86400000).toISOString(),
+    shift: 'swing',
     poster_profiles: {
       id: 'poster-2',
       display_name: 'Maria R.',
       company: 'DPR Construction',
       role: 'Safety Manager'
     },
-    cover_photo_url: 'https://images.unsplash.com/photo-1555854743-e3c2f6a5bb93?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+    cover_photo_url: 'https://images.unsplash.com/photo-1555854743-e3c2f6a5bb93?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
     photo_urls: [
-      'https://images.unsplash.com/photo-1555854743-e3c2f6a5bb93?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
+      'https://images.unsplash.com/photo-1555854743-e3c2f6a5bb93?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80'
     ]
   },
   {
@@ -103,15 +105,16 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
     tags: ['Private Entrance', 'Kitchenette', 'Pets Allowed'],
     is_active: true,
     created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+    shift: 'night',
     poster_profiles: {
       id: 'poster-3',
       display_name: 'Jessica T.',
       company: 'Bechtel',
       role: 'Electrician'
     },
-    cover_photo_url: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+    cover_photo_url: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
     photo_urls: [
-      'https://images.unsplash.com/photo-1493809842364-78817add7ffb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
+      'https://images.unsplash.com/photo-1493809842364-78817add7ffb?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80'
     ]
   },
   {
@@ -135,9 +138,9 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
       company: 'Rosendin',
       role: 'Foreman'
     },
-    cover_photo_url: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+    cover_photo_url: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
     photo_urls: [
-      'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
+      'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80'
     ]
   },
   {
@@ -161,9 +164,9 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
       company: 'Holder Construction',
       role: 'Field Engineer'
     },
-    cover_photo_url: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+    cover_photo_url: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
     photo_urls: [
-      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
+      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80'
     ]
   },
   {
@@ -187,9 +190,9 @@ export const DEMO_LISTINGS: Partial<Listing>[] = [
       company: 'Meta',
       role: 'Logistics'
     },
-    cover_photo_url: 'https://images.unsplash.com/photo-1536349788264-1b816db3cc13?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+    cover_photo_url: 'https://images.unsplash.com/photo-1536349788264-1b816db3cc13?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
     photo_urls: [
-      'https://images.unsplash.com/photo-1536349788264-1b816db3cc13?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
+      'https://images.unsplash.com/photo-1536349788264-1b816db3cc13?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80'
     ]
   }
 ];
