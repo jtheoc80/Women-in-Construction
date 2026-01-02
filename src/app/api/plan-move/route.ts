@@ -6,7 +6,40 @@ import {
   getListingsForJobsite,
   rankHubs,
   type PlanMoveResponse,
+  type Listing,
 } from '@/lib/supabase'
+import { DEMO_LISTINGS } from '@/lib/demo-data'
+
+/**
+ * Convert demo listings to the Listing type format expected by the API response.
+ * This ensures demo listings have consistent photo fields that work on both
+ * SSR and CSR, preventing hydration mismatches.
+ */
+function getDemoListingsForResponse(): Listing[] {
+  return DEMO_LISTINGS.map(demo => ({
+    id: demo.id || `demo-${Date.now()}`,
+    user_id: demo.user_id || 'demo-user',
+    city: demo.city || 'Unknown',
+    area: demo.area || null,
+    rent_min: demo.rent_min ?? null,
+    rent_max: demo.rent_max ?? null,
+    move_in: demo.move_in || null,
+    room_type: demo.room_type || 'private_room',
+    commute_area: demo.commute_area || null,
+    details: demo.details || null,
+    is_active: true,
+    created_at: demo.created_at || new Date().toISOString(),
+    jobsite_id: null,
+    hub_id: null,
+    shift: null,
+    // CRITICAL: Always include photo fields from demo data
+    cover_photo_url: demo.cover_photo_url || null,
+    photo_urls: demo.photo_urls || null,
+    profiles: demo.poster_profiles ? {
+      display_name: demo.poster_profiles.display_name || 'Anonymous'
+    } : undefined,
+  }))
+}
 
 // Mock data for when Supabase is not configured
 function getMockResponse(jobsiteSlug: string): PlanMoveResponse {
@@ -62,7 +95,8 @@ function getMockResponse(jobsiteSlug: string): PlanMoveResponse {
   if (!jobsite) {
     return {
       hubs: [],
-      listings: [],
+      // Always include demo listings with stable local photos
+      listings: getDemoListingsForResponse(),
       jobsite: null,
       scarcity: { listings_14d: 0, avg_response_hours: null, is_scarce: true },
     }
@@ -83,75 +117,8 @@ function getMockResponse(jobsiteSlug: string): PlanMoveResponse {
       score: 80 - i * 10,
       budget_match: true,
     })),
-    listings: [
-      {
-        id: 'mock-1',
-        user_id: 'demo_user_1',
-        city: `${jobsite.city}, ${jobsite.state}`,
-        area: hubs[0]?.name || 'Downtown',
-        rent_min: 850,
-        rent_max: 1000,
-        move_in: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        room_type: 'private_room',
-        commute_area: jobsite.name,
-        details: 'Clean, quiet apartment. Looking for a roommate who works similar shifts. Non-smoker preferred.',
-        is_active: true,
-        created_at: new Date().toISOString(),
-        jobsite_id: 'mock-jobsite',
-        hub_id: 'mock-hub-0',
-        shift: 'day',
-        cover_photo_url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
-        photo_urls: [
-          'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
-          'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
-          'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800',
-        ],
-        profiles: { display_name: 'Sarah M.' },
-      },
-      {
-        id: 'mock-2',
-        user_id: 'demo_user_2',
-        city: `${jobsite.city}, ${jobsite.state}`,
-        area: hubs[1]?.name || 'Suburb',
-        rent_min: 700,
-        rent_max: 850,
-        move_in: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        room_type: 'shared_room',
-        commute_area: jobsite.name,
-        details: 'Sharing a house with other tradeswomen. Great location and affordable rent.',
-        is_active: true,
-        created_at: new Date().toISOString(),
-        jobsite_id: 'mock-jobsite',
-        hub_id: 'mock-hub-1',
-        shift: 'swing',
-        cover_photo_url: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800',
-        photo_urls: [
-          'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800',
-          'https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?w=800',
-        ],
-        profiles: { display_name: 'Jessica R.' },
-      },
-      {
-        id: 'mock-3',
-        user_id: 'demo_user_3',
-        city: `${jobsite.city}, ${jobsite.state}`,
-        area: hubs[2]?.name || 'East Side',
-        rent_min: 650,
-        rent_max: 800,
-        move_in: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        room_type: 'private_room',
-        commute_area: jobsite.name,
-        details: 'Private room available. I work nights so place is quiet during the day.',
-        is_active: true,
-        created_at: new Date().toISOString(),
-        jobsite_id: 'mock-jobsite',
-        hub_id: 'mock-hub-2',
-        shift: 'night',
-        cover_photo_url: null, // No photo - will show badge
-        photo_urls: null,
-        profiles: { display_name: 'Amanda K.' },
-      },
-    ],
+    // Use demo listings with stable local photos instead of random Unsplash URLs
+    listings: getDemoListingsForResponse(),
     jobsite: {
       id: 'mock-jobsite',
       name: jobsite.name,
@@ -163,9 +130,9 @@ function getMockResponse(jobsiteSlug: string): PlanMoveResponse {
       updated_at: new Date().toISOString(),
     },
     scarcity: {
-      listings_14d: 3,
+      listings_14d: getDemoListingsForResponse().length,
       avg_response_hours: 8.5,
-      is_scarce: true,
+      is_scarce: false,
     },
   }
 }
@@ -223,7 +190,7 @@ export async function POST(request: NextRequest) {
     const topHubIds = rankedHubs.slice(0, 5).map((h) => h.hub_id)
 
     // Get filtered listings
-    const listings = await getListingsForJobsite(activeJobsiteId, {
+    const dbListings = await getListingsForJobsite(activeJobsiteId, {
       hub_ids: topHubIds.length > 0 ? topHubIds : undefined,
       budget_min,
       budget_max,
@@ -234,6 +201,19 @@ export async function POST(request: NextRequest) {
 
     // Get jobsite-level metrics for scarcity indicators
     const jobsiteMetrics = await getJobsiteMetrics(activeJobsiteId)
+
+    // Merge DB listings with demo listings
+    // Demo listings are always included to ensure there's always content with photos
+    const demoListings = getDemoListingsForResponse()
+    
+    // Create a set of DB listing IDs to avoid duplicates
+    const dbListingIds = new Set(dbListings.map(l => l.id))
+    
+    // Filter out demo listings that might conflict with DB listings (by ID)
+    const filteredDemoListings = demoListings.filter(d => !dbListingIds.has(d.id))
+    
+    // Combine: DB listings first, then demo listings
+    const listings = [...dbListings, ...filteredDemoListings]
 
     const response: PlanMoveResponse = {
       hubs: rankedHubs,
@@ -287,8 +267,14 @@ export async function GET(request: NextRequest) {
 
     const hubMetrics = await getHubMetrics(jobsite.id)
     const rankedHubs = rankHubs(hubMetrics, { commute_max: commuteMax })
-    const listings = await getListingsForJobsite(jobsite.id)
+    const dbListings = await getListingsForJobsite(jobsite.id)
     const jobsiteMetrics = await getJobsiteMetrics(jobsite.id)
+
+    // Merge DB listings with demo listings
+    const demoListings = getDemoListingsForResponse()
+    const dbListingIds = new Set(dbListings.map(l => l.id))
+    const filteredDemoListings = demoListings.filter(d => !dbListingIds.has(d.id))
+    const listings = [...dbListings, ...filteredDemoListings]
 
     const response: PlanMoveResponse = {
       hubs: rankedHubs,
