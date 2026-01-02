@@ -1,15 +1,15 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { SiteLogo, SiteLogoMark } from '@/components/SiteLogo'
+import { useState, useEffect } from 'react'
+import { SiteLogo } from '@/components/SiteLogo'
 import { Button } from '@/components/ui/button'
-import { AddressAutocomplete, type AddressResult } from '@/components/AddressAutocomplete'
-import { ProfileModal } from '@/components/ProfileModal'
-import { ProfilePill, type LocalProfile } from '@/components/ProfilePill'
-import { MapPin, Target, X, ChevronLeft, ChevronRight, Upload, Loader2, Building2, Lock } from 'lucide-react'
+import { ProfilePill } from '@/components/ProfilePill'
+import { BottomSheet, SlideOver } from '@/components/BottomSheet'
+import { PostListingModal } from '@/components/PostListingModal'
+import { MapPin, Target, ChevronLeft, ChevronRight, Filter, Loader2, Building2, Lock } from 'lucide-react'
 import { useGatedAction, useAuth } from '@/contexts/AuthContext'
 
-// Types based on database schema
+// Types
 interface PosterProfile {
   id: string
   display_name: string
@@ -43,25 +43,19 @@ interface Listing {
   lng: number | null
   is_active: boolean
   created_at: string
-  // Private field - only visible to owner
   full_address?: string | null
   is_owner?: boolean
-  // Joined data
   poster_profiles?: PosterProfile | null
   listing_photos?: ListingPhoto[]
-  // Legacy fields for mock data compatibility
   cover_photo_url?: string | null
   photo_urls?: string[] | null
-  profiles?: {
-    display_name: string
-  }
+  profiles?: { display_name: string }
 }
 
-// Supabase client (anon key - safe for client-side)
+// Supabase client constants
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-// Get public URL for a storage path
 function getPhotoUrl(storagePath: string): string {
   if (!SUPABASE_URL) return ''
   return `${SUPABASE_URL}/storage/v1/object/public/listing-photos/${storagePath}`
@@ -73,7 +67,6 @@ async function fetchListings(filters: {
   roomType?: string
 }): Promise<Listing[]> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    // Return mock data if Supabase not configured
     return getMockListings()
   }
 
@@ -99,7 +92,6 @@ async function fetchListings(filters: {
     if (!res.ok) throw new Error('Failed to fetch')
     const data = await res.json()
     
-    // Sort photos by sort_order
     return data.map((listing: Listing) => ({
       ...listing,
       listing_photos: listing.listing_photos?.sort((a, b) => a.sort_order - b.sort_order) || [],
@@ -112,178 +104,64 @@ async function fetchListings(filters: {
 function getMockListings(): Listing[] {
   return [
     {
-      id: '1',
-      user_id: 'user1',
-      poster_profile_id: 'profile1',
-      title: 'Cozy room near Intel Ocotillo',
-      city: 'Phoenix, AZ',
-      area: 'Downtown',
-      rent_min: 800,
-      rent_max: 1000,
-      move_in: '2026-02-01',
-      room_type: 'private_room',
-      commute_area: 'Intel Ocotillo',
-      details: 'Looking for a clean, quiet roommate. I work early shifts at the data center construction site. Non-smoker preferred.',
-      tags: ['quiet', 'early-riser', 'non-smoker'],
-      place_id: null,
-      lat: null,
-      lng: null,
-      is_active: true,
-      created_at: '2026-01-15T10:00:00Z',
-      poster_profiles: {
-        id: 'profile1',
-        display_name: 'Sarah M.',
-        company: 'Turner Construction',
-        role: 'Electrician',
-      },
+      id: '1', user_id: 'user1', poster_profile_id: 'profile1',
+      title: 'Cozy room near Intel Ocotillo', city: 'Phoenix, AZ', area: 'Downtown',
+      rent_min: 800, rent_max: 1000, move_in: '2026-02-01', room_type: 'private_room',
+      commute_area: 'Intel Ocotillo', details: 'Looking for a clean, quiet roommate.',
+      tags: ['quiet', 'early-riser'], place_id: null, lat: null, lng: null,
+      is_active: true, created_at: '2026-01-15T10:00:00Z',
+      poster_profiles: { id: 'profile1', display_name: 'Sarah M.', company: 'Turner Construction', role: 'Electrician' },
       cover_photo_url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
-      photo_urls: [
-        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
-        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
-      ],
     },
     {
-      id: '2',
-      user_id: 'user2',
-      poster_profile_id: 'profile2',
-      title: 'Shared space near Samsung Taylor',
-      city: 'Austin, TX',
-      area: 'Round Rock',
-      rent_min: 700,
-      rent_max: 900,
-      move_in: '2026-01-20',
-      room_type: 'shared_room',
-      commute_area: 'Samsung Taylor',
-      details: 'Friendly electrician looking to share a 2BR apartment near the fab site. Flexible on move-in date.',
-      tags: ['friendly', 'flexible'],
-      place_id: null,
-      lat: null,
-      lng: null,
-      is_active: true,
-      created_at: '2026-01-14T15:30:00Z',
-      poster_profiles: {
-        id: 'profile2',
-        display_name: 'Jessica R.',
-        company: 'Skanska',
-        role: 'Project Manager',
-      },
+      id: '2', user_id: 'user2', poster_profile_id: 'profile2',
+      title: 'Shared space near Samsung Taylor', city: 'Austin, TX', area: 'Round Rock',
+      rent_min: 700, rent_max: 900, move_in: '2026-01-20', room_type: 'shared_room',
+      commute_area: 'Samsung Taylor', details: 'Friendly electrician looking to share.',
+      tags: ['friendly', 'flexible'], place_id: null, lat: null, lng: null,
+      is_active: true, created_at: '2026-01-14T15:30:00Z',
+      poster_profiles: { id: 'profile2', display_name: 'Jessica R.', company: 'Skanska', role: 'Project Manager' },
       cover_photo_url: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800',
-      photo_urls: [
-        'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800',
-        'https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?w=800',
-      ],
     },
     {
-      id: '3',
-      user_id: 'user3',
-      poster_profile_id: 'profile3',
-      title: 'Private room in New Albany',
-      city: 'Columbus, OH',
-      area: 'New Albany',
-      rent_min: 650,
-      rent_max: 850,
-      move_in: '2026-02-15',
-      room_type: 'private_room',
-      commute_area: 'Intel Ohio',
-      details: 'HVAC tech on a 6-month project. Looking for month-to-month or short-term lease. I keep odd hours but am respectful.',
-      tags: ['short-term', 'flexible-hours'],
-      place_id: null,
-      lat: null,
-      lng: null,
-      is_active: true,
-      created_at: '2026-01-13T09:00:00Z',
-      poster_profiles: {
-        id: 'profile3',
-        display_name: 'Amanda K.',
-        company: 'Mortenson',
-        role: 'HVAC Tech',
-      },
+      id: '3', user_id: 'user3', poster_profile_id: 'profile3',
+      title: 'Private room in New Albany', city: 'Columbus, OH', area: 'New Albany',
+      rent_min: 650, rent_max: 850, move_in: '2026-02-15', room_type: 'private_room',
+      commute_area: 'Intel Ohio', details: 'HVAC tech on a 6-month project.',
+      tags: ['short-term', 'flexible-hours'], place_id: null, lat: null, lng: null,
+      is_active: true, created_at: '2026-01-13T09:00:00Z',
+      poster_profiles: { id: 'profile3', display_name: 'Amanda K.', company: 'Mortenson', role: 'HVAC Tech' },
       cover_photo_url: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800',
-      photo_urls: [
-        'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800',
-        'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800',
-        'https://images.unsplash.com/photo-1556909172-54557c7e4fb7?w=800',
-      ],
-    },
-    {
-      id: '4',
-      user_id: 'user4',
-      poster_profile_id: 'profile4',
-      title: 'Entire 1BR near TSMC Arizona',
-      city: 'Phoenix, AZ',
-      area: 'Chandler',
-      rent_min: 900,
-      rent_max: 1100,
-      move_in: '2026-03-01',
-      room_type: 'entire_place',
-      commute_area: 'TSMC Arizona',
-      details: 'Have a whole 1BR available in a quiet complex. Perfect for someone who values privacy. Pool and gym access.',
-      tags: ['privacy', 'amenities'],
-      place_id: null,
-      lat: null,
-      lng: null,
-      is_active: true,
-      created_at: '2026-01-12T14:00:00Z',
-      poster_profiles: {
-        id: 'profile4',
-        display_name: 'Michelle T.',
-        company: 'Hensel Phelps',
-        role: 'Site Supervisor',
-      },
-      cover_photo_url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
-      photo_urls: [
-        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
-        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
-      ],
     },
   ]
 }
 
 function getListingCoverPhotoUrl(listing: Listing): string | null {
-  // Try listing_photos first (from DB)
   if (listing.listing_photos && listing.listing_photos.length > 0) {
     return getPhotoUrl(listing.listing_photos[0].storage_path)
   }
-  // Fall back to legacy mock data
   if (listing.cover_photo_url) return listing.cover_photo_url
   if (listing.photo_urls && listing.photo_urls.length > 0) return listing.photo_urls[0]
   return null
 }
 
 function getListingPhotoUrls(listing: Listing): string[] {
-  // Try listing_photos first (from DB)
   if (listing.listing_photos && listing.listing_photos.length > 0) {
     return listing.listing_photos.map(p => getPhotoUrl(p.storage_path))
   }
-  // Fall back to legacy mock data
   if (listing.photo_urls) return listing.photo_urls
   if (listing.cover_photo_url) return [listing.cover_photo_url]
   return []
 }
 
-function getListingPhotoCount(listing: Listing): number {
-  if (listing.listing_photos && listing.listing_photos.length > 0) {
-    return listing.listing_photos.length
-  }
-  if (listing.photo_urls) return listing.photo_urls.length
-  return listing.cover_photo_url ? 1 : 0
-}
-
 function getDisplayName(listing: Listing): string {
-  if (listing.poster_profiles?.display_name) {
-    return listing.poster_profiles.display_name
-  }
-  if (listing.profiles?.display_name) {
-    return listing.profiles.display_name
-  }
-  return 'Anonymous'
+  return listing.poster_profiles?.display_name || listing.profiles?.display_name || 'Anonymous'
 }
 
 function getCompany(listing: Listing): string | null {
   return listing.poster_profiles?.company || null
 }
 
-// Room type display helper
 function formatRoomType(type: string): string {
   switch (type) {
     case 'private_room': return 'Private Room'
@@ -293,42 +171,10 @@ function formatRoomType(type: string): string {
   }
 }
 
-// Date formatting helper
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return 'Flexible'
   const date = new Date(dateStr)
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-// No-auth profile persistence (design page only)
-const LOCAL_PROFILE_KEY = 'sitesisters_profile'
-
-function readLocalProfile(): LocalProfile | null {
-  try {
-    const raw = localStorage.getItem(LOCAL_PROFILE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as Partial<LocalProfile> | null
-    if (!parsed || typeof parsed !== 'object') return null
-    if (typeof parsed.displayName !== 'string' || typeof parsed.company !== 'string') return null
-    const displayName = parsed.displayName.trim()
-    const company = parsed.company.trim()
-    const role = typeof parsed.role === 'string' ? parsed.role.trim() : undefined
-    if (!displayName || !company) return null
-    return { displayName, company, role: role || undefined }
-  } catch {
-    return null
-  }
-}
-
-function writeLocalProfile(profile: LocalProfile) {
-  localStorage.setItem(
-    LOCAL_PROFILE_KEY,
-    JSON.stringify({
-      displayName: profile.displayName,
-      company: profile.company,
-      role: profile.role,
-    })
-  )
 }
 
 // Photo Carousel Component
@@ -337,52 +183,41 @@ function PhotoCarousel({ photos }: { photos: string[] }) {
 
   if (photos.length === 0) {
     return (
-      <div style={carouselStyles.placeholder}>
-        <span>Photo coming soon</span>
+      <div className="flex h-60 w-full items-center justify-center rounded-xl bg-gradient-to-br from-slate-800 to-slate-700 sm:h-64">
+        <span className="text-sm font-medium text-white/70">Photo coming soon</span>
       </div>
     )
   }
 
-  const goToPrev = () => {
-    setCurrentIndex((prev) => (prev === 0 ? photos.length - 1 : prev - 1))
-  }
-
-  const goToNext = () => {
-    setCurrentIndex((prev) => (prev === photos.length - 1 ? 0 : prev + 1))
-  }
-
   return (
-    <div style={carouselStyles.container}>
+    <div className="relative h-60 w-full overflow-hidden rounded-xl bg-slate-800 sm:h-64">
       <img
         src={photos[currentIndex]}
         alt={`Photo ${currentIndex + 1}`}
-        style={carouselStyles.image}
+        className="h-full w-full object-cover"
       />
       {photos.length > 1 && (
         <>
           <button
-            onClick={goToPrev}
-            style={{ ...carouselStyles.navButton, left: '8px' }}
+            onClick={() => setCurrentIndex(prev => (prev === 0 ? photos.length - 1 : prev - 1))}
+            className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg"
             aria-label="Previous photo"
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft className="h-5 w-5 text-slate-800" />
           </button>
           <button
-            onClick={goToNext}
-            style={{ ...carouselStyles.navButton, right: '8px' }}
+            onClick={() => setCurrentIndex(prev => (prev === photos.length - 1 ? 0 : prev + 1))}
+            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg"
             aria-label="Next photo"
           >
-            <ChevronRight size={20} />
+            <ChevronRight className="h-5 w-5 text-slate-800" />
           </button>
-          <div style={carouselStyles.dots}>
+          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
             {photos.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => setCurrentIndex(idx)}
-                style={{
-                  ...carouselStyles.dot,
-                  ...(idx === currentIndex ? carouselStyles.dotActive : {}),
-                }}
+                className={`h-2 w-2 rounded-full ${idx === currentIndex ? 'bg-white' : 'bg-white/50'}`}
                 aria-label={`Go to photo ${idx + 1}`}
               />
             ))}
@@ -393,326 +228,32 @@ function PhotoCarousel({ photos }: { photos: string[] }) {
   )
 }
 
-const carouselStyles: { [key: string]: React.CSSProperties } = {
-  container: {
-    position: 'relative',
-    width: '100%',
-    height: '240px',
-    background: '#f1f5f9',
-    borderRadius: '12px',
-    overflow: 'hidden',
-    marginBottom: '24px',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  },
-  placeholder: {
-    width: '100%',
-    height: '240px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'linear-gradient(135deg, rgba(30,41,59,0.9) 0%, rgba(51,65,85,0.9) 100%)',
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    borderRadius: '12px',
-    marginBottom: '24px',
-  },
-  navButton: {
-    position: 'absolute',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    background: 'rgba(255,255,255,0.9)',
-    border: 'none',
-    borderRadius: '50%',
-    width: '36px',
-    height: '36px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-    color: '#1e293b',
-  },
-  dots: {
-    position: 'absolute',
-    bottom: '12px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    display: 'flex',
-    gap: '6px',
-  },
-  dot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    background: 'rgba(255,255,255,0.5)',
-    border: 'none',
-    cursor: 'pointer',
-    padding: 0,
-  },
-  dotActive: {
-    background: 'white',
-  },
-}
-
-// Photo Uploader Component
-function PhotoUploader({
-  uploadedPaths,
-  onUploadComplete,
-  onRemove,
-}: {
-  uploadedPaths: string[]
-  onUploadComplete: (paths: string[]) => void
-  onRemove: (index: number) => void
-}) {
-  const [isUploading, setIsUploading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const fileInputRef = (node: HTMLInputElement | null) => {
-    if (node) {
-      node.value = ''
-    }
-  }
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || files.length === 0) return
-
-    setError(null)
-    setIsUploading(true)
-
-    const formData = new FormData()
-    for (const file of Array.from(files)) {
-      formData.append('files', file)
-    }
-
-    try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      const data = await res.json()
-
-      if (!res.ok || !data.ok) {
-        setError(data.error || 'Upload failed')
-        return
-      }
-
-      onUploadComplete([...uploadedPaths, ...data.paths])
-    } catch (err) {
-      console.error('Upload error:', err)
-      setError('Failed to upload photos. Please try again.')
-    } finally {
-      setIsUploading(false)
-    }
-  }
-
-  return (
-    <div style={uploaderStyles.container}>
-      <div style={uploaderStyles.dropzone}>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          multiple
-          onChange={handleFileSelect}
-          disabled={isUploading || uploadedPaths.length >= 6}
-          style={uploaderStyles.fileInput}
-          id="photo-upload"
-        />
-        <label htmlFor="photo-upload" style={uploaderStyles.dropzoneLabel}>
-          {isUploading ? (
-            <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
-          ) : (
-            <Upload size={24} />
-          )}
-          <span style={{ marginTop: '8px' }}>
-            {isUploading
-              ? 'Uploading...'
-              : uploadedPaths.length >= 6
-              ? 'Maximum 6 photos'
-              : 'Drop photos here or click to select'}
-          </span>
-          <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
-            JPG, PNG, or WebP • Max 6MB each
-          </span>
-        </label>
-      </div>
-
-      {error && <p style={uploaderStyles.error}>{error}</p>}
-
-      {uploadedPaths.length > 0 && (
-        <div style={uploaderStyles.previews}>
-          {uploadedPaths.map((path, index) => (
-            <div key={path} style={uploaderStyles.previewItem}>
-              <img
-                src={getPhotoUrl(path)}
-                alt={`Upload ${index + 1}`}
-                style={uploaderStyles.previewImage}
-              />
-              <button
-                type="button"
-                onClick={() => onRemove(index)}
-                style={uploaderStyles.removeButton}
-                aria-label="Remove photo"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-const uploaderStyles: { [key: string]: React.CSSProperties } = {
-  container: {
-    marginBottom: '16px',
-  },
-  dropzone: {
-    border: '2px dashed #cbd5e1',
-    borderRadius: '8px',
-    padding: '24px',
-    textAlign: 'center',
-    cursor: 'pointer',
-    transition: 'border-color 0.2s',
-    background: '#f8fafc',
-  },
-  dropzoneLabel: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    color: '#64748b',
-    cursor: 'pointer',
-  },
-  fileInput: {
-    display: 'none',
-  },
-  error: {
-    color: '#ef4444',
-    fontSize: '0.85rem',
-    marginTop: '8px',
-  },
-  previews: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '8px',
-    marginTop: '16px',
-  },
-  previewItem: {
-    position: 'relative',
-    width: '80px',
-    height: '80px',
-  },
-  previewImage: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    borderRadius: '6px',
-  },
-  removeButton: {
-    position: 'absolute',
-    top: '-6px',
-    right: '-6px',
-    background: '#ef4444',
-    color: 'white',
-    border: 'none',
-    borderRadius: '50%',
-    width: '20px',
-    height: '20px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    padding: 0,
-  },
-}
-
 export default function DesignPage() {
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
   
-  // Auth hooks for gating actions
-  const { gateAction } = useGatedAction()
+  // Auth
   const { user } = useAuth()
+  const { gateAction } = useGatedAction()
   
   // Filters
   const [cityFilter, setCityFilter] = useState('')
   const [rentMaxFilter, setRentMaxFilter] = useState<number | ''>('')
   const [roomTypeFilter, setRoomTypeFilter] = useState('all')
+  const [showFilters, setShowFilters] = useState(false)
   
   // Modals
   const [showPostModal, setShowPostModal] = useState(false)
   const [showIntroModal, setShowIntroModal] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
-
-  // No-auth local profile (header + optional prefill)
-  const [localProfile, setLocalProfile] = useState<LocalProfile | null>(null)
-  const [showProfileModal, setShowProfileModal] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
-  const toastTimeoutRef = useRef<number | null>(null)
   
   // Form states
   const [introMessage, setIntroMessage] = useState('')
   const [reportReason, setReportReason] = useState('')
   const [reportDetails, setReportDetails] = useState('')
-  
-  // New listing form - organized by sections
-  const [newListingProfile, setNewListingProfile] = useState({
-    displayName: '',
-    company: '',
-    role: '',
-  })
-  
-  const [newListingLocation, setNewListingLocation] = useState({
-    address: '',
-    city: '',
-    area: '',
-    placeId: '',
-    lat: null as number | null,
-    lng: null as number | null,
-  })
-  
-  const [newListingDetails, setNewListingDetails] = useState({
-    title: '',
-    roomType: 'private_room',
-    rentMin: '',
-    rentMax: '',
-    moveIn: '',
-    commuteArea: '',
-    tags: '',
-    bio: '',
-  })
-  
-  const [newListingPhotos, setNewListingPhotos] = useState<string[]>([])
-  
-  const [newListingContact, setNewListingContact] = useState({
-    contactPreference: 'email',
-    contactValue: '',
-  })
-  
-  const [honeypot, setHoneypot] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    const existing = readLocalProfile()
-    setLocalProfile(existing)
-    if (existing) {
-      setNewListingProfile((prev) => {
-        if (prev.displayName || prev.company || prev.role) return prev
-        return {
-          displayName: existing.displayName,
-          company: existing.company,
-          role: existing.role || '',
-        }
-      })
-    }
     loadListings()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -730,143 +271,17 @@ export default function DesignPage() {
 
   function handleSearch() {
     loadListings()
-  }
-
-  function saveLocalProfile(profile: LocalProfile) {
-    writeLocalProfile(profile)
-    setLocalProfile(profile)
-    setNewListingProfile((prev) => ({
-      ...prev,
-      displayName: profile.displayName,
-      company: profile.company,
-      role: profile.role || '',
-    }))
-  }
-
-  function showToastMessage(message: string) {
-    setToast(message)
-    if (toastTimeoutRef.current) {
-      window.clearTimeout(toastTimeoutRef.current)
-    }
-    toastTimeoutRef.current = window.setTimeout(() => setToast(null), 3200)
-  }
-
-  function scrollToListings() {
-    const el = document.getElementById('listings') || document.getElementById('browse')
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      return
-    }
-    showToastMessage('Could not find the listings section on this page.')
+    setShowFilters(false)
   }
 
   function handlePostListingClick() {
-    // Gate posting behind auth + profile completion
     gateAction(() => {
       setShowPostModal(true)
     }, '/design')
   }
 
-  function handleRequestIntroClick() {
-    setShowIntroModal(true)
-  }
-
-  // Handle address selection from autocomplete
-  function handleAddressSelect(result: AddressResult) {
-    setNewListingLocation({
-      address: result.formattedAddress, // Full address stored for submission
-      city: result.city,
-      area: result.area,
-      placeId: result.placeId,
-      lat: result.lat || null,
-      lng: result.lng || null,
-    })
-  }
-
-  async function handlePostListing(e: React.FormEvent) {
-    e.preventDefault()
-    setIsSubmitting(true)
-
-    try {
-      const response = await fetch('/api/listings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          profile: {
-            displayName: newListingProfile.displayName,
-            company: newListingProfile.company,
-            role: newListingProfile.role || undefined,
-            contactPreference: newListingContact.contactPreference,
-            contactValue: newListingContact.contactValue,
-          },
-          listing: {
-            title: newListingDetails.title || undefined,
-            city: newListingLocation.city,
-            area: newListingLocation.area || undefined,
-            rentMin: newListingDetails.rentMin ? parseInt(newListingDetails.rentMin) : undefined,
-            rentMax: newListingDetails.rentMax ? parseInt(newListingDetails.rentMax) : undefined,
-            moveInISO: newListingDetails.moveIn || undefined,
-            roomType: newListingDetails.roomType,
-            commuteArea: newListingDetails.commuteArea || undefined,
-            tags: newListingDetails.tags ? newListingDetails.tags.split(',').map(t => t.trim()).filter(Boolean) : undefined,
-            bio: newListingDetails.bio || undefined,
-            placeId: newListingLocation.placeId || undefined,
-            lat: newListingLocation.lat || undefined,
-            lng: newListingLocation.lng || undefined,
-            // Store full address privately - only owner can see this
-            fullAddress: newListingLocation.address || undefined,
-          },
-          photoPaths: newListingPhotos.length > 0 ? newListingPhotos : undefined,
-          website: honeypot,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok || !data.ok) {
-        alert(data.error || 'Failed to post listing')
-        return
-      }
-
-      // Persist local profile (no auth) so the header becomes populated immediately
-      const postedProfile: LocalProfile = {
-        displayName: newListingProfile.displayName.trim(),
-        company: newListingProfile.company.trim(),
-        role: newListingProfile.role.trim() ? newListingProfile.role.trim() : undefined,
-      }
-      if (postedProfile.displayName && postedProfile.company) {
-        try {
-          saveLocalProfile(postedProfile)
-        } catch {
-          // ignore localStorage failures (private mode, quota, etc.)
-        }
-      }
-
-      alert('Listing posted successfully!')
-      setShowPostModal(false)
-      
-      // Reset form
-      setNewListingProfile({ displayName: '', company: '', role: '' })
-      setNewListingLocation({ address: '', city: '', area: '', placeId: '', lat: null, lng: null })
-      setNewListingDetails({ title: '', roomType: 'private_room', rentMin: '', rentMax: '', moveIn: '', commuteArea: '', tags: '', bio: '' })
-      setNewListingPhotos([])
-      setNewListingContact({ contactPreference: 'email', contactValue: '' })
-      setHoneypot('')
-      
-      loadListings()
-    } catch (err) {
-      console.error('Error posting listing:', err)
-      alert('An error occurred while posting the listing')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   function handleRequestIntro(e: React.FormEvent) {
     e.preventDefault()
-    // In production, this would POST to an API
     alert('Request sent! The listing owner will receive your message. (Demo mode)')
     setShowIntroModal(false)
     setIntroMessage('')
@@ -874,7 +289,6 @@ export default function DesignPage() {
 
   function handleReport(e: React.FormEvent) {
     e.preventDefault()
-    // In production, this would POST to Supabase reports
     alert('Report submitted. Thank you for helping keep our community safe. (Demo mode)')
     setShowReportModal(false)
     setReportReason('')
@@ -882,9 +296,9 @@ export default function DesignPage() {
   }
 
   return (
-    <div style={styles.page}>
-      {/* Header (design-page, no-auth profile UI) */}
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950 px-4 py-4 text-white/90">
+    <div className="min-h-[100dvh] bg-slate-50">
+      {/* Header - Sticky with backdrop blur */}
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/95 px-4 py-3 backdrop-blur-lg sm:py-4">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <a href="/design" className="flex items-center gap-2">
             <SiteLogo />
@@ -893,213 +307,175 @@ export default function DesignPage() {
             </span>
           </a>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Button
               onClick={handlePostListingClick}
-              className="bg-teal-600 px-3 text-sm text-white hover:bg-teal-500 focus-visible:ring-2 focus-visible:ring-teal-400 sm:px-5 sm:text-base"
+              className="h-11 bg-teal-600 px-3 text-sm font-semibold text-white hover:bg-teal-500 sm:px-5 sm:text-base"
             >
               <span className="hidden sm:inline">+ Post Listing</span>
               <span className="sm:hidden">+ Post</span>
             </Button>
-
-            {localProfile ? (
-              <ProfilePill
-                profile={localProfile}
-                onEditProfile={() => setShowProfileModal(true)}
-                onGoToListings={scrollToListings}
-                onSafety={() =>
-                  showToastMessage('Safety: use “Report” on any listing; full addresses stay private by default.')
-                }
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowProfileModal(true)}
-                className="inline-flex h-11 items-center gap-3 rounded-2xl bg-white/10 px-3 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
-              >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
-                  <SiteLogoMark className="h-5 w-5" />
-                </span>
-                <span className="hidden flex-col text-left sm:flex">
-                  <span className="text-sm font-semibold leading-tight text-white">
-                    Create profile
-                  </span>
-                  <span className="text-xs text-white/70">Add your name + company</span>
-                </span>
-                <span className="ml-0.5 text-xs text-white/80" aria-hidden="true">
-                  ▼
-                </span>
-              </button>
-            )}
+            
+            <ProfilePill />
           </div>
         </div>
       </header>
 
       {/* Hero */}
-      <section style={styles.hero}>
-        <h1 style={styles.heroTitle}>A housing network for women who build.</h1>
-        <p style={styles.heroSubhead}>
+      <section className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 pb-8 pt-10 text-center sm:pb-12 sm:pt-12">
+        <h1 className="mx-auto max-w-lg text-2xl font-bold leading-tight text-white sm:max-w-2xl sm:text-4xl">
+          A housing network for women who build.
+        </h1>
+        <p className="mx-auto mt-3 max-w-md text-sm text-white/80 sm:mt-4 sm:max-w-xl sm:text-lg">
           Find roommates near construction and data center jobsites.
         </p>
 
-        <p style={styles.heroTrustLine}>
+        <p className="mt-4 text-xs text-white/50 sm:text-sm">
           Private by default • Request-to-connect • Report + moderation
         </p>
 
-        <div style={styles.heroCtas}>
-          <a href="/jobsites" style={styles.primaryCta}>
-            <Target
-              aria-hidden="true"
-              size={16}
-              style={{ marginRight: '8px', verticalAlign: 'text-bottom' }}
-            />
+        <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:mt-8 sm:flex-row sm:gap-4">
+          <a 
+            href="/jobsites" 
+            className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-teal-600 px-6 text-sm font-semibold text-white hover:bg-teal-500 sm:w-auto"
+          >
+            <Target className="h-4 w-4" />
             Plan my move
           </a>
-          <a href="#listings" style={styles.secondaryCta}>
-            <MapPin
-              aria-hidden="true"
-              size={16}
-              style={{ marginRight: '8px', verticalAlign: 'text-bottom' }}
-            />
+          <a 
+            href="#listings" 
+            className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-xl border border-white/20 bg-transparent px-6 text-sm font-semibold text-white hover:bg-white/10 sm:w-auto"
+          >
+            <MapPin className="h-4 w-4" />
             Browse listings
           </a>
         </div>
       </section>
 
-      {/* Hero follow-on */}
-      <section style={styles.featureSection}>
-        <div style={styles.featureInner}>
-          <h2 style={styles.featureTitle}>
-            Built for tough schedules and tougher housing markets.
-          </h2>
-          <div style={styles.filters}>
-            <div style={styles.filterRow}>
-              <div style={styles.filterGroup}>
-                <label style={styles.filterLabel}>City / Region</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Phoenix, Austin, Columbus..."
-                  value={cityFilter}
-                  onChange={(e) => setCityFilter(e.target.value)}
-                  style={styles.filterInput}
-                />
-              </div>
-              <div style={styles.filterGroup}>
-                <label style={styles.filterLabel}>Max Rent</label>
-                <input
-                  type="number"
-                  placeholder="e.g. 1000"
-                  value={rentMaxFilter}
-                  onChange={(e) =>
-                    setRentMaxFilter(e.target.value ? parseInt(e.target.value) : '')
-                  }
-                  style={styles.filterInput}
-                />
-              </div>
-              <div style={styles.filterGroup}>
-                <label style={styles.filterLabel}>Room Type</label>
-                <select
-                  value={roomTypeFilter}
-                  onChange={(e) => setRoomTypeFilter(e.target.value)}
-                  style={styles.filterSelect}
-                >
-                  <option value="all">All Types</option>
-                  <option value="private_room">Private Room</option>
-                  <option value="shared_room">Shared Room</option>
-                  <option value="entire_place">Entire Place</option>
-                </select>
-              </div>
-              <button style={styles.searchButton} onClick={handleSearch}>
-                Search
-              </button>
+      {/* Filter Bar - Desktop inline, Mobile as button */}
+      <section className="border-b border-slate-200 bg-white px-4 py-4 sm:py-6">
+        <div className="mx-auto max-w-6xl">
+          <div className="flex items-center justify-between sm:hidden">
+            <h2 className="text-lg font-semibold text-slate-900">Find a place</h2>
+            <Button
+              onClick={() => setShowFilters(true)}
+              variant="outline"
+              className="h-11 gap-2 border-slate-300"
+            >
+              <Filter className="h-4 w-4" />
+              Filters
+            </Button>
+          </div>
+
+          {/* Desktop filters */}
+          <div className="hidden gap-4 sm:flex sm:items-end">
+            <div className="flex-1">
+              <label className="mb-1.5 block text-sm font-medium text-slate-600">City / Region</label>
+              <input
+                type="text"
+                placeholder="e.g. Phoenix, Austin, Columbus..."
+                value={cityFilter}
+                onChange={(e) => setCityFilter(e.target.value)}
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-base focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+              />
             </div>
+            <div className="w-40">
+              <label className="mb-1.5 block text-sm font-medium text-slate-600">Max Rent</label>
+              <input
+                type="number"
+                placeholder="e.g. 1000"
+                value={rentMaxFilter}
+                onChange={(e) => setRentMaxFilter(e.target.value ? parseInt(e.target.value) : '')}
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-base focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+              />
+            </div>
+            <div className="w-44">
+              <label className="mb-1.5 block text-sm font-medium text-slate-600">Room Type</label>
+              <select
+                value={roomTypeFilter}
+                onChange={(e) => setRoomTypeFilter(e.target.value)}
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-base focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+              >
+                <option value="all">All Types</option>
+                <option value="private_room">Private Room</option>
+                <option value="shared_room">Shared Room</option>
+                <option value="entire_place">Entire Place</option>
+              </select>
+            </div>
+            <Button
+              onClick={handleSearch}
+              className="h-11 bg-teal-600 px-6 font-semibold text-white hover:bg-teal-500"
+            >
+              Search
+            </Button>
           </div>
         </div>
       </section>
 
       {/* Listings Grid */}
-      <section id="listings" style={styles.listingsSection}>
-        <h2 style={styles.sectionTitle}>
+      <section id="listings" className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
+        <h2 className="mb-4 text-lg font-semibold text-slate-900 sm:mb-6 sm:text-xl">
           {loading ? 'Loading listings...' : `${listings.length} Listings Available`}
         </h2>
         
         {loading ? (
-          <div style={styles.loadingGrid}>
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} style={styles.skeletonCard} />
-            ))}
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
           </div>
         ) : listings.length === 0 ? (
-          <div style={styles.emptyState}>
+          <div className="py-20 text-center text-slate-500">
             <p>No listings match your filters. Try adjusting your search criteria.</p>
           </div>
         ) : (
-          <div style={styles.grid}>
+          <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {listings.map((listing) => (
               <div
                 key={listing.id}
-                style={styles.card}
                 onClick={() => setSelectedListing(listing)}
+                className="cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
               >
-                {/* Photo Header */}
-                <div style={styles.cardPhotoContainer}>
+                {/* Photo */}
+                <div className="relative h-40 bg-slate-100 sm:h-44">
                   {getListingCoverPhotoUrl(listing) ? (
                     <img
                       src={getListingCoverPhotoUrl(listing)!}
-                      alt={`${listing.area || listing.city} listing`}
-                      style={styles.cardPhoto}
+                      alt={listing.area || listing.city}
+                      className="h-full w-full object-cover"
                       loading="lazy"
                     />
                   ) : (
-                    <div style={styles.cardPhotoFallback}>
-                      <span style={styles.cardPhotoFallbackText}>Photo coming soon</span>
+                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-700 to-slate-600">
+                      <span className="text-sm font-medium text-white/80">Photo coming soon</span>
                     </div>
                   )}
-
-                  <span style={styles.cardTypeBadge}>
+                  <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
                     {formatRoomType(listing.room_type)}
                   </span>
-
-                  {getListingPhotoCount(listing) > 1 && (
-                    <span style={styles.cardPhotoCount}>
-                      {getListingPhotoCount(listing)} photos
-                    </span>
-                  )}
                 </div>
 
                 {/* Content */}
-                <div style={styles.cardContent}>
-                  <div style={styles.cardHeader}>
-                    <span style={styles.cardCity}>{listing.city}</span>
-                  </div>
-                  <div style={styles.cardBody}>
-                    {listing.area && <p style={styles.cardArea}>{listing.area}</p>}
-                    <p style={styles.cardRent}>
-                      ${listing.rent_min || '?'} - ${listing.rent_max || '?'}/mo
+                <div className="p-4">
+                  <h3 className="font-semibold text-slate-900">{listing.city}</h3>
+                  {listing.area && (
+                    <p className="mt-0.5 text-sm text-slate-500">{listing.area}</p>
+                  )}
+                  <p className="mt-2 text-lg font-bold text-slate-900">
+                    ${listing.rent_min || '?'} - ${listing.rent_max || '?'}<span className="text-sm font-normal">/mo</span>
+                  </p>
+                  {listing.commute_area && (
+                    <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                      <MapPin className="h-3 w-3" />
+                      Near {listing.commute_area}
                     </p>
-                    {listing.commute_area && (
-                      <p style={styles.cardCommute}>
-                        <MapPin
-                          aria-hidden="true"
-                          style={{ ...styles.commuteIcon, verticalAlign: 'text-bottom' }}
-                          size={14}
-                        />{' '}
-                        Near {listing.commute_area}
-                      </p>
-                    )}
-                    <p style={styles.cardMoveIn}>
-                      Move-in: {formatDate(listing.move_in)}
-                    </p>
-                  </div>
-                  <div style={styles.cardFooter}>
-                    <span style={styles.cardPoster}>
+                  )}
+                  <p className="mt-1 text-xs text-slate-400">
+                    Move-in: {formatDate(listing.move_in)}
+                  </p>
+                  <div className="mt-3 border-t border-slate-100 pt-3">
+                    <p className="text-xs text-slate-400">
                       Posted by {getDisplayName(listing)}
-                      {getCompany(listing) && (
-                        <span style={styles.cardCompany}>
-                          {' '}• {getCompany(listing)}
-                        </span>
-                      )}
-                    </span>
+                      {getCompany(listing) && <span className="text-slate-500"> • {getCompany(listing)}</span>}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1108,1114 +484,254 @@ export default function DesignPage() {
         )}
       </section>
 
-      {/* Listing Detail Drawer */}
-      {selectedListing && (
-        <div style={styles.drawerOverlay} onClick={() => setSelectedListing(null)}>
-          <div style={styles.drawer} onClick={(e) => e.stopPropagation()}>
-            <button style={styles.closeButton} onClick={() => setSelectedListing(null)}>
-              <X aria-hidden="true" size={18} />
-            </button>
-            <div style={styles.drawerContent}>
-              {/* Photo Carousel */}
-              <PhotoCarousel photos={getListingPhotoUrls(selectedListing)} />
+      {/* Footer */}
+      <footer className="bg-slate-950 px-4 py-8 text-center">
+        <p className="text-sm text-slate-400">© 2026 SiteSisters. All rights reserved.</p>
+        <p className="mt-2 text-xs italic text-slate-500">Built for women who build.</p>
+      </footer>
 
-              <h2 style={styles.drawerTitle}>
-                {selectedListing.title || selectedListing.city}
-              </h2>
-              {selectedListing.area && (
-                <p style={styles.drawerArea}>{selectedListing.area}</p>
+      {/* Mobile Filters Bottom Sheet */}
+      <BottomSheet
+        open={showFilters}
+        onClose={() => setShowFilters(false)}
+        title="Filters"
+      >
+        <div className="space-y-5 p-4 sm:p-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white/90">City / Region</label>
+            <input
+              type="text"
+              placeholder="e.g. Phoenix, Austin, Columbus..."
+              value={cityFilter}
+              onChange={(e) => setCityFilter(e.target.value)}
+              className="h-12 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-base text-white placeholder:text-white/40 focus:border-teal-500 focus:outline-none"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white/90">Max Rent</label>
+            <input
+              type="number"
+              placeholder="e.g. 1000"
+              value={rentMaxFilter}
+              onChange={(e) => setRentMaxFilter(e.target.value ? parseInt(e.target.value) : '')}
+              className="h-12 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-base text-white placeholder:text-white/40 focus:border-teal-500 focus:outline-none"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white/90">Room Type</label>
+            <select
+              value={roomTypeFilter}
+              onChange={(e) => setRoomTypeFilter(e.target.value)}
+              className="h-12 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-base text-white focus:border-teal-500 focus:outline-none"
+            >
+              <option value="all">All Types</option>
+              <option value="private_room">Private Room</option>
+              <option value="shared_room">Shared Room</option>
+              <option value="entire_place">Entire Place</option>
+            </select>
+          </div>
+          <Button
+            onClick={handleSearch}
+            className="h-12 w-full bg-teal-600 text-base font-semibold text-white hover:bg-teal-500"
+          >
+            Apply Filters
+          </Button>
+        </div>
+      </BottomSheet>
+
+      {/* Listing Detail - Bottom sheet on mobile, slide-over on desktop */}
+      <SlideOver
+        open={!!selectedListing}
+        onClose={() => setSelectedListing(null)}
+        title={selectedListing?.title || selectedListing?.city || 'Listing'}
+      >
+        {selectedListing && (
+          <div className="p-4 sm:p-6">
+            <PhotoCarousel photos={getListingPhotoUrls(selectedListing)} />
+
+            <h2 className="mt-4 text-xl font-bold text-white sm:text-2xl">
+              {selectedListing.title || selectedListing.city}
+            </h2>
+            {selectedListing.area && (
+              <p className="mt-1 text-white/60">{selectedListing.area}</p>
+            )}
+
+            {/* Meta grid */}
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-white/5 p-3">
+                <p className="text-xs text-white/50">Room Type</p>
+                <p className="mt-1 font-semibold text-white">{formatRoomType(selectedListing.room_type)}</p>
+              </div>
+              <div className="rounded-xl bg-white/5 p-3">
+                <p className="text-xs text-white/50">Rent Range</p>
+                <p className="mt-1 font-semibold text-white">
+                  ${selectedListing.rent_min || '?'} - ${selectedListing.rent_max || '?'}/mo
+                </p>
+              </div>
+              <div className="rounded-xl bg-white/5 p-3">
+                <p className="text-xs text-white/50">Move-in Date</p>
+                <p className="mt-1 font-semibold text-white">{formatDate(selectedListing.move_in)}</p>
+              </div>
+              {selectedListing.commute_area && (
+                <div className="rounded-xl bg-white/5 p-3">
+                  <p className="text-xs text-white/50">Commute Area</p>
+                  <p className="mt-1 font-semibold text-white">{selectedListing.commute_area}</p>
+                </div>
               )}
-              
-              <div style={styles.drawerMeta}>
-                <div style={styles.metaItem}>
-                  <span style={styles.metaLabel}>Room Type</span>
-                  <span style={styles.metaValue}>{formatRoomType(selectedListing.room_type)}</span>
+            </div>
+
+            {/* Private address (owner only) */}
+            {user && selectedListing.user_id === user.id && selectedListing.full_address && (
+              <div className="mt-4 rounded-xl border border-teal-500/30 bg-teal-500/10 p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-teal-400">
+                  <Lock className="h-4 w-4" />
+                  Your Private Address
                 </div>
-                <div style={styles.metaItem}>
-                  <span style={styles.metaLabel}>Rent Range</span>
-                  <span style={styles.metaValue}>
-                    ${selectedListing.rent_min || '?'} - ${selectedListing.rent_max || '?'}/mo
+                <p className="mt-2 text-white">{selectedListing.full_address}</p>
+                <p className="mt-1 text-xs text-white/50">Only you can see this</p>
+              </div>
+            )}
+
+            {/* Tags */}
+            {selectedListing.tags && selectedListing.tags.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {selectedListing.tags.map((tag) => (
+                  <span key={tag} className="rounded-full bg-teal-500/20 px-3 py-1 text-xs font-medium text-teal-300">
+                    {tag}
                   </span>
-                </div>
-                <div style={styles.metaItem}>
-                  <span style={styles.metaLabel}>Move-in Date</span>
-                  <span style={styles.metaValue}>{formatDate(selectedListing.move_in)}</span>
-                </div>
-                {selectedListing.commute_area && (
-                  <div style={styles.metaItem}>
-                    <span style={styles.metaLabel}>Commute Area</span>
-                    <span style={styles.metaValue}>{selectedListing.commute_area}</span>
-                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Description */}
+            <div className="mt-6">
+              <h3 className="font-semibold text-white">About this listing</h3>
+              <p className="mt-2 text-sm leading-relaxed text-white/70">
+                {selectedListing.details || 'No additional details provided.'}
+              </p>
+            </div>
+
+            {/* Poster info */}
+            <div className="mt-6 flex items-start gap-3 rounded-xl bg-white/5 p-4">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-teal-600">
+                <Building2 className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="font-semibold text-white">{getDisplayName(selectedListing)}</p>
+                {getCompany(selectedListing) && (
+                  <p className="text-sm text-white/60">{getCompany(selectedListing)}</p>
+                )}
+                {selectedListing.poster_profiles?.role && (
+                  <p className="text-sm text-white/40">{selectedListing.poster_profiles.role}</p>
                 )}
               </div>
+            </div>
 
-              {/* Full Address - Only visible to the listing owner */}
-              {user && selectedListing.user_id === user.id && selectedListing.full_address && (
-                <div style={styles.privateAddressBlock}>
-                  <div style={styles.privateAddressHeader}>
-                    <Lock size={14} />
-                    <span>Your Private Address</span>
-                  </div>
-                  <p style={styles.privateAddressText}>{selectedListing.full_address}</p>
-                  <p style={styles.privateAddressNote}>
-                    Only you can see this. Others see only the city and neighborhood.
-                  </p>
-                </div>
-              )}
-
-              {selectedListing.tags && selectedListing.tags.length > 0 && (
-                <div style={styles.tagsContainer}>
-                  {selectedListing.tags.map((tag) => (
-                    <span key={tag} style={styles.tag}>
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div style={styles.drawerDetails}>
-                <h3 style={styles.detailsTitle}>About this listing</h3>
-                <p style={styles.detailsText}>
-                  {selectedListing.details || 'No additional details provided.'}
-                </p>
-              </div>
-
-              {/* Profile Block */}
-              <div style={styles.profileBlock}>
-                <div style={styles.profileIcon}>
-                  <Building2 size={20} />
-                </div>
-                <div style={styles.profileInfo}>
-                  <span style={styles.profileName}>{getDisplayName(selectedListing)}</span>
-                  {getCompany(selectedListing) && (
-                    <span style={styles.profileCompany}>{getCompany(selectedListing)}</span>
-                  )}
-                  {selectedListing.poster_profiles?.role && (
-                    <span style={styles.profileRole}>{selectedListing.poster_profiles.role}</span>
-                  )}
-                </div>
-              </div>
-
-              <div style={styles.drawerActions}>
-                <button
-                  style={styles.introButton}
-                  onClick={handleRequestIntroClick}
-                >
-                  Request Intro
-                </button>
-                <button
-                  style={styles.reportButton}
-                  onClick={() => setShowReportModal(true)}
-                >
-                  Report
-                </button>
-              </div>
+            {/* Actions */}
+            <div className="mt-6 flex gap-3">
+              <Button
+                onClick={() => setShowIntroModal(true)}
+                className="h-12 flex-1 bg-teal-600 font-semibold text-white hover:bg-teal-500"
+              >
+                Request Intro
+              </Button>
+              <Button
+                onClick={() => setShowReportModal(true)}
+                variant="outline"
+                className="h-12 border-white/20 text-white hover:bg-white/10"
+              >
+                Report
+              </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </SlideOver>
 
       {/* Post Listing Modal */}
-      {showPostModal && (
-        <div style={styles.modalOverlay} onClick={() => setShowPostModal(false)}>
-          <div style={styles.modalLarge} onClick={(e) => e.stopPropagation()}>
-            <button style={styles.closeButton} onClick={() => setShowPostModal(false)}>
-              <X aria-hidden="true" size={18} />
-            </button>
-            <h2 style={styles.modalTitle}>Post a Listing</h2>
-            
-            <form onSubmit={handlePostListing} style={styles.form}>
-              {/* Honeypot - hidden from users */}
-              <input
-                type="text"
-                name="website"
-                value={honeypot}
-                onChange={(e) => setHoneypot(e.target.value)}
-                style={{ display: 'none' }}
-                tabIndex={-1}
-                autoComplete="off"
-              />
-
-              {/* Section 1: About You */}
-              <div style={styles.formSection}>
-                <h3 style={styles.formSectionTitle}>About You</h3>
-                <div style={styles.formRow}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Your Name *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Sarah M."
-                      value={newListingProfile.displayName}
-                      onChange={(e) => setNewListingProfile({ ...newListingProfile, displayName: e.target.value })}
-                      style={styles.formInput}
-                    />
-                  </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Company *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Turner Construction"
-                      value={newListingProfile.company}
-                      onChange={(e) => setNewListingProfile({ ...newListingProfile, company: e.target.value })}
-                      style={styles.formInput}
-                    />
-                  </div>
-                </div>
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Role/Title</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Electrician, Site Supervisor"
-                    value={newListingProfile.role}
-                    onChange={(e) => setNewListingProfile({ ...newListingProfile, role: e.target.value })}
-                    style={styles.formInput}
-                  />
-                </div>
-              </div>
-
-              {/* Section 2: Location */}
-              <div style={styles.formSection}>
-                <h3 style={styles.formSectionTitle}>Location</h3>
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>
-                    <Lock size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} />
-                    Address (Private)
-                  </label>
-                  <AddressAutocomplete
-                    onSelect={handleAddressSelect}
-                    placeholder="Start typing an address..."
-                  />
-                  <p style={styles.formHintPrivate}>
-                    <Lock size={12} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} />
-                    Your full address is kept private for safety. Only you can see it. Others will only see the city and neighborhood.
-                  </p>
-                </div>
-                <div style={styles.formRow}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>City *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Phoenix, AZ"
-                      value={newListingLocation.city}
-                      onChange={(e) => setNewListingLocation({ ...newListingLocation, city: e.target.value })}
-                      style={styles.formInput}
-                    />
-                  </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Area/Neighborhood</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Downtown, Chandler"
-                      value={newListingLocation.area}
-                      onChange={(e) => setNewListingLocation({ ...newListingLocation, area: e.target.value })}
-                      style={styles.formInput}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 3: Listing Details */}
-              <div style={styles.formSection}>
-                <h3 style={styles.formSectionTitle}>Listing Details</h3>
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Listing Title</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Cozy room near Intel Ocotillo"
-                    value={newListingDetails.title}
-                    onChange={(e) => setNewListingDetails({ ...newListingDetails, title: e.target.value })}
-                    style={styles.formInput}
-                  />
-                </div>
-                <div style={styles.formRow}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Room Type *</label>
-                    <select
-                      required
-                      value={newListingDetails.roomType}
-                      onChange={(e) => setNewListingDetails({ ...newListingDetails, roomType: e.target.value })}
-                      style={styles.formSelect}
-                    >
-                      <option value="private_room">Private Room</option>
-                      <option value="shared_room">Shared Room</option>
-                      <option value="entire_place">Entire Place</option>
-                    </select>
-                  </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Move-in Date</label>
-                    <input
-                      type="date"
-                      value={newListingDetails.moveIn}
-                      onChange={(e) => setNewListingDetails({ ...newListingDetails, moveIn: e.target.value })}
-                      style={styles.formInput}
-                    />
-                  </div>
-                </div>
-                <div style={styles.formRow}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Min Rent ($)</label>
-                    <input
-                      type="number"
-                      placeholder="e.g. 700"
-                      value={newListingDetails.rentMin}
-                      onChange={(e) => setNewListingDetails({ ...newListingDetails, rentMin: e.target.value })}
-                      style={styles.formInput}
-                    />
-                  </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Max Rent ($)</label>
-                    <input
-                      type="number"
-                      placeholder="e.g. 1000"
-                      value={newListingDetails.rentMax}
-                      onChange={(e) => setNewListingDetails({ ...newListingDetails, rentMax: e.target.value })}
-                      style={styles.formInput}
-                    />
-                  </div>
-                </div>
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Commute Area / Job Site</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Intel Ocotillo, TSMC Arizona"
-                    value={newListingDetails.commuteArea}
-                    onChange={(e) => setNewListingDetails({ ...newListingDetails, commuteArea: e.target.value })}
-                    style={styles.formInput}
-                  />
-                </div>
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Tags (comma-separated)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. quiet, early-riser, non-smoker"
-                    value={newListingDetails.tags}
-                    onChange={(e) => setNewListingDetails({ ...newListingDetails, tags: e.target.value })}
-                    style={styles.formInput}
-                  />
-                </div>
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Description</label>
-                  <textarea
-                    placeholder="Tell potential roommates about yourself, your schedule, preferences, etc."
-                    value={newListingDetails.bio}
-                    onChange={(e) => setNewListingDetails({ ...newListingDetails, bio: e.target.value })}
-                    style={styles.formTextarea}
-                    rows={4}
-                  />
-                </div>
-              </div>
-
-              {/* Section 4: Photos */}
-              <div style={styles.formSection}>
-                <h3 style={styles.formSectionTitle}>Photos</h3>
-                <PhotoUploader
-                  uploadedPaths={newListingPhotos}
-                  onUploadComplete={setNewListingPhotos}
-                  onRemove={(index) => {
-                    setNewListingPhotos(prev => prev.filter((_, i) => i !== index))
-                  }}
-                />
-              </div>
-
-              {/* Section 5: Contact (Private) */}
-              <div style={styles.formSection}>
-                <h3 style={styles.formSectionTitle}>Contact Info (Private)</h3>
-                <p style={styles.formHint}>
-                  This information is only shared when you accept an intro request.
-                </p>
-                <div style={styles.formRow}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Contact Method *</label>
-                    <select
-                      required
-                      value={newListingContact.contactPreference}
-                      onChange={(e) => setNewListingContact({ ...newListingContact, contactPreference: e.target.value })}
-                      style={styles.formSelect}
-                    >
-                      <option value="email">Email</option>
-                      <option value="phone">Phone</option>
-                      <option value="instagram">Instagram</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>
-                      {newListingContact.contactPreference === 'email' ? 'Email Address' :
-                       newListingContact.contactPreference === 'phone' ? 'Phone Number' :
-                       newListingContact.contactPreference === 'instagram' ? 'Instagram Handle' :
-                       'Contact Info'} *
-                    </label>
-                    <input
-                      type={newListingContact.contactPreference === 'email' ? 'email' : 'text'}
-                      required
-                      placeholder={
-                        newListingContact.contactPreference === 'email' ? 'you@example.com' :
-                        newListingContact.contactPreference === 'phone' ? '(555) 555-5555' :
-                        newListingContact.contactPreference === 'instagram' ? '@username' :
-                        'Your contact info'
-                      }
-                      value={newListingContact.contactValue}
-                      onChange={(e) => setNewListingContact({ ...newListingContact, contactValue: e.target.value })}
-                      style={styles.formInput}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <button 
-                type="submit" 
-                style={styles.submitButton}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Posting...' : 'Post Listing'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      <PostListingModal
+        open={showPostModal}
+        onClose={() => setShowPostModal(false)}
+        onSuccess={loadListings}
+      />
 
       {/* Request Intro Modal */}
-      {showIntroModal && selectedListing && (
-        <div style={styles.modalOverlay} onClick={() => setShowIntroModal(false)}>
-          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <button style={styles.closeButton} onClick={() => setShowIntroModal(false)}>
-              <X aria-hidden="true" size={18} />
-            </button>
-            <h2 style={styles.modalTitle}>Request an Introduction</h2>
-            <p style={styles.modalSubtitle}>
+      <BottomSheet
+        open={showIntroModal}
+        onClose={() => setShowIntroModal(false)}
+        title="Request an Introduction"
+      >
+        {selectedListing && (
+          <form onSubmit={handleRequestIntro} className="p-4 sm:p-6">
+            <p className="text-sm text-white/70">
               Send an intro request to {getDisplayName(selectedListing)}. 
               If they accept, you&apos;ll both receive each other&apos;s contact info.
             </p>
-            <form onSubmit={handleRequestIntro} style={styles.form}>
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Your Message</label>
-                <textarea
-                  placeholder="Introduce yourself! Mention your job, schedule, and what you're looking for in a roommate."
-                  value={introMessage}
-                  onChange={(e) => setIntroMessage(e.target.value)}
-                  style={styles.formTextarea}
-                  rows={4}
-                  required
-                />
-              </div>
-              <button type="submit" style={styles.submitButton}>
-                Send Intro Request
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+            <div className="mt-4 space-y-2">
+              <label className="text-sm font-medium text-white/90">Your Message</label>
+              <textarea
+                placeholder="Introduce yourself! Mention your job, schedule, and what you're looking for."
+                value={introMessage}
+                onChange={(e) => setIntroMessage(e.target.value)}
+                rows={4}
+                required
+                className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-white/40 focus:border-teal-500 focus:outline-none"
+              />
+            </div>
+            <Button
+              type="submit"
+              className="mt-4 h-12 w-full bg-teal-600 font-semibold text-white hover:bg-teal-500"
+            >
+              Send Intro Request
+            </Button>
+          </form>
+        )}
+      </BottomSheet>
 
       {/* Report Modal */}
-      {showReportModal && selectedListing && (
-        <div style={styles.modalOverlay} onClick={() => setShowReportModal(false)}>
-          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <button style={styles.closeButton} onClick={() => setShowReportModal(false)}>
-              <X aria-hidden="true" size={18} />
-            </button>
-            <h2 style={styles.modalTitle}>Report Listing</h2>
-            <p style={styles.modalSubtitle}>
-              Help us keep SiteSisters safe. Reports are anonymous.
-            </p>
-            <form onSubmit={handleReport} style={styles.form}>
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Reason *</label>
-                <select
-                  required
-                  value={reportReason}
-                  onChange={(e) => setReportReason(e.target.value)}
-                  style={styles.formSelect}
-                >
-                  <option value="">Select a reason...</option>
-                  <option value="spam">Spam or fake listing</option>
-                  <option value="scam">Suspected scam</option>
-                  <option value="inappropriate">Inappropriate content</option>
-                  <option value="not_women_focused">Not relevant to women in construction</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Additional Details</label>
-                <textarea
-                  placeholder="Any additional context that might help us review this report."
-                  value={reportDetails}
-                  onChange={(e) => setReportDetails(e.target.value)}
-                  style={styles.formTextarea}
-                  rows={3}
-                />
-              </div>
-              <button type="submit" style={styles.reportSubmitButton}>
-                Submit Report
-              </button>
-            </form>
+      <BottomSheet
+        open={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        title="Report Listing"
+      >
+        <form onSubmit={handleReport} className="p-4 sm:p-6">
+          <p className="text-sm text-white/70">
+            Help us keep SiteSisters safe. Reports are anonymous.
+          </p>
+          <div className="mt-4 space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-white/90">Reason *</label>
+              <select
+                required
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                className="h-12 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-base text-white focus:border-teal-500 focus:outline-none"
+              >
+                <option value="">Select a reason...</option>
+                <option value="spam">Spam or fake listing</option>
+                <option value="scam">Suspected scam</option>
+                <option value="inappropriate">Inappropriate content</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-white/90">Additional Details</label>
+              <textarea
+                placeholder="Any additional context that might help us review this report."
+                value={reportDetails}
+                onChange={(e) => setReportDetails(e.target.value)}
+                rows={3}
+                className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-white/40 focus:border-teal-500 focus:outline-none"
+              />
+            </div>
           </div>
-        </div>
-      )}
-
-      <ProfileModal
-        open={showProfileModal}
-        initialProfile={localProfile}
-        onClose={() => setShowProfileModal(false)}
-        onSave={(profile) => {
-          saveLocalProfile(profile)
-          setShowProfileModal(false)
-          showToastMessage('Profile saved on this device.')
-        }}
-      />
-
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 z-[500] w-[min(92vw,520px)] -translate-x-1/2 rounded-2xl border border-white/10 bg-slate-950/95 px-4 py-3 text-sm text-white shadow-xl backdrop-blur">
-          {toast}
-        </div>
-      )}
-
-      {/* Footer */}
-      <footer style={styles.footer}>
-        <p>© 2026 SiteSisters. All rights reserved.</p>
-        <p style={styles.footerTagline}>Built for women who build.</p>
-      </footer>
-
-      <style jsx global>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+          <Button
+            type="submit"
+            className="mt-4 h-12 w-full bg-red-600 font-semibold text-white hover:bg-red-500"
+          >
+            Submit Report
+          </Button>
+        </form>
+      </BottomSheet>
     </div>
   )
-}
-
-const styles: { [key: string]: React.CSSProperties } = {
-  page: {
-    minHeight: '100vh',
-    background: '#f8fafc',
-  },
-  hero: {
-    background: 'linear-gradient(180deg, #020617 0%, #0f172a 100%)',
-    padding: '48px 24px 32px',
-    textAlign: 'center',
-  },
-  heroTitle: {
-    color: 'white',
-    fontSize: '2.25rem',
-    fontWeight: 700,
-    marginBottom: '12px',
-    maxWidth: '700px',
-    margin: '0 auto 12px',
-    lineHeight: 1.2,
-  },
-  heroSubhead: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: '1.1rem',
-    maxWidth: '520px',
-    margin: '0 auto',
-    lineHeight: 1.5,
-  },
-  heroTrustLine: {
-    color: 'rgba(255,255,255,0.55)',
-    fontSize: '0.85rem',
-    marginTop: '16px',
-    letterSpacing: '0.02em',
-  },
-  heroCtas: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: '12px',
-    marginTop: '24px',
-  },
-  primaryCta: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: '#0d9488',
-    color: 'white',
-    padding: '12px 20px',
-    borderRadius: '8px',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    textDecoration: 'none',
-    transition: 'background 0.2s',
-    minWidth: '160px',
-  },
-  secondaryCta: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'transparent',
-    color: 'rgba(255,255,255,0.9)',
-    padding: '12px 20px',
-    borderRadius: '8px',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    textDecoration: 'none',
-    border: '1px solid rgba(255,255,255,0.2)',
-    transition: 'background 0.2s',
-    minWidth: '160px',
-  },
-  featureSection: {
-    background: '#f8fafc',
-    padding: '32px 24px 24px',
-  },
-  featureInner: {
-    maxWidth: '1100px',
-    margin: '0 auto',
-  },
-  featureTitle: {
-    fontSize: '1.35rem',
-    fontWeight: 700,
-    color: '#0f172a',
-    textAlign: 'center',
-    marginBottom: '0',
-  },
-  filters: {
-    background: 'white',
-    padding: '24px',
-    border: '1px solid #e2e8f0',
-    borderRadius: '12px',
-    boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
-    marginTop: '24px',
-  },
-  filterRow: {
-    display: 'flex',
-    gap: '16px',
-    alignItems: 'flex-end',
-    flexWrap: 'wrap',
-  },
-  filterGroup: {
-    flex: '1 1 200px',
-    minWidth: '150px',
-  },
-  filterLabel: {
-    display: 'block',
-    fontSize: '0.85rem',
-    fontWeight: 600,
-    color: '#475569',
-    marginBottom: '6px',
-  },
-  filterInput: {
-    width: '100%',
-    padding: '10px 14px',
-    border: '1px solid #cbd5e1',
-    borderRadius: '8px',
-    fontSize: '0.95rem',
-    outline: 'none',
-  },
-  filterSelect: {
-    width: '100%',
-    padding: '10px 14px',
-    border: '1px solid #cbd5e1',
-    borderRadius: '8px',
-    fontSize: '0.95rem',
-    outline: 'none',
-    background: 'white',
-  },
-  searchButton: {
-    background: '#0d9488',
-    color: 'white',
-    border: 'none',
-    padding: '10px 24px',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    borderRadius: '8px',
-    cursor: 'pointer',
-    height: '42px',
-  },
-  listingsSection: {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '32px 24px',
-  },
-  sectionTitle: {
-    fontSize: '1.25rem',
-    fontWeight: 600,
-    color: '#1e293b',
-    marginBottom: '24px',
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: '20px',
-  },
-  loadingGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: '20px',
-  },
-  skeletonCard: {
-    background: '#e2e8f0',
-    borderRadius: '12px',
-    height: '220px',
-    animation: 'pulse 1.5s infinite',
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: '60px 20px',
-    color: '#64748b',
-  },
-  card: {
-    background: 'white',
-    borderRadius: '12px',
-    overflow: 'hidden',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    cursor: 'pointer',
-    transition: 'transform 0.2s, box-shadow 0.2s',
-    border: '1px solid #e2e8f0',
-  },
-  cardPhotoContainer: {
-    position: 'relative',
-    height: '160px',
-    background: '#f1f5f9',
-  },
-  cardPhoto: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    display: 'block',
-  },
-  cardPhotoFallback: {
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background:
-      'linear-gradient(135deg, rgba(30,41,59,0.9) 0%, rgba(51,65,85,0.9) 100%)',
-  },
-  cardPhotoFallbackText: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: '0.9rem',
-    fontWeight: 600,
-  },
-  cardTypeBadge: {
-    position: 'absolute',
-    top: '10px',
-    left: '10px',
-    background: 'rgba(255,255,255,0.92)',
-    color: '#475569',
-    padding: '4px 10px',
-    borderRadius: '20px',
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    boxShadow: '0 1px 2px rgba(0,0,0,0.12)',
-  },
-  cardPhotoCount: {
-    position: 'absolute',
-    bottom: '10px',
-    right: '10px',
-    background: 'rgba(0,0,0,0.7)',
-    color: 'white',
-    padding: '4px 8px',
-    borderRadius: '6px',
-    fontSize: '0.75rem',
-    fontWeight: 600,
-  },
-  cardContent: {
-    padding: '20px',
-  },
-  cardHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '12px',
-  },
-  cardCity: {
-    fontSize: '1.1rem',
-    fontWeight: 600,
-    color: '#1e293b',
-  },
-  cardBody: {
-    marginBottom: '12px',
-  },
-  cardArea: {
-    color: '#64748b',
-    fontSize: '0.9rem',
-    marginBottom: '8px',
-  },
-  cardRent: {
-    color: '#1e293b',
-    fontSize: '1.1rem',
-    fontWeight: 600,
-    marginBottom: '8px',
-  },
-  cardCommute: {
-    color: '#64748b',
-    fontSize: '0.85rem',
-    marginBottom: '6px',
-  },
-  commuteIcon: {
-    marginRight: '4px',
-  },
-  cardMoveIn: {
-    color: '#64748b',
-    fontSize: '0.85rem',
-  },
-  cardFooter: {
-    borderTop: '1px solid #f1f5f9',
-    paddingTop: '12px',
-  },
-  cardPoster: {
-    color: '#94a3b8',
-    fontSize: '0.8rem',
-  },
-  cardCompany: {
-    color: '#64748b',
-  },
-  drawerOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0,0,0,0.5)',
-    zIndex: 200,
-    display: 'flex',
-    justifyContent: 'flex-end',
-  },
-  drawer: {
-    background: 'white',
-    width: '100%',
-    maxWidth: '480px',
-    height: '100%',
-    overflowY: 'auto',
-    position: 'relative',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: '16px',
-    right: '16px',
-    background: 'none',
-    border: 'none',
-    fontSize: '1.5rem',
-    cursor: 'pointer',
-    color: '#64748b',
-    width: '40px',
-    height: '40px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '8px',
-    zIndex: 10,
-  },
-  drawerContent: {
-    padding: '32px 24px',
-  },
-  drawerTitle: {
-    fontSize: '1.75rem',
-    fontWeight: 700,
-    color: '#1e293b',
-    marginBottom: '4px',
-  },
-  drawerArea: {
-    color: '#64748b',
-    fontSize: '1rem',
-    marginBottom: '24px',
-  },
-  drawerMeta: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '16px',
-    marginBottom: '24px',
-  },
-  metaItem: {
-    background: '#f8fafc',
-    padding: '12px',
-    borderRadius: '8px',
-  },
-  metaLabel: {
-    display: 'block',
-    fontSize: '0.75rem',
-    color: '#64748b',
-    marginBottom: '4px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-  },
-  metaValue: {
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    color: '#1e293b',
-  },
-  privateAddressBlock: {
-    background: 'linear-gradient(135deg, rgba(13, 148, 136, 0.08) 0%, rgba(13, 148, 136, 0.04) 100%)',
-    border: '1px solid rgba(13, 148, 136, 0.2)',
-    borderRadius: '12px',
-    padding: '16px',
-    marginBottom: '24px',
-  },
-  privateAddressHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    color: '#0d9488',
-    fontWeight: 600,
-    fontSize: '0.85rem',
-    marginBottom: '8px',
-  },
-  privateAddressText: {
-    color: '#1e293b',
-    fontSize: '0.95rem',
-    fontWeight: 500,
-    marginBottom: '8px',
-  },
-  privateAddressNote: {
-    color: '#64748b',
-    fontSize: '0.8rem',
-    fontStyle: 'italic',
-  },
-  tagsContainer: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '8px',
-    marginBottom: '24px',
-  },
-  tag: {
-    background: '#e0f2fe',
-    color: '#0369a1',
-    padding: '4px 10px',
-    borderRadius: '16px',
-    fontSize: '0.8rem',
-    fontWeight: 500,
-  },
-  drawerDetails: {
-    marginBottom: '24px',
-  },
-  detailsTitle: {
-    fontSize: '1rem',
-    fontWeight: 600,
-    color: '#1e293b',
-    marginBottom: '8px',
-  },
-  detailsText: {
-    color: '#475569',
-    lineHeight: 1.7,
-    fontSize: '0.95rem',
-  },
-  profileBlock: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '12px',
-    padding: '16px',
-    background: '#f8fafc',
-    borderRadius: '12px',
-    marginBottom: '24px',
-    borderTop: '1px solid #e2e8f0',
-  },
-  profileIcon: {
-    width: '44px',
-    height: '44px',
-    borderRadius: '50%',
-    background: '#0d9488',
-    color: 'white',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  profileInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-  },
-  profileName: {
-    fontWeight: 600,
-    color: '#1e293b',
-    fontSize: '1rem',
-  },
-  profileCompany: {
-    color: '#64748b',
-    fontSize: '0.9rem',
-  },
-  profileRole: {
-    color: '#94a3b8',
-    fontSize: '0.85rem',
-  },
-  drawerPoster: {
-    color: '#64748b',
-    fontSize: '0.9rem',
-    marginBottom: '24px',
-    paddingTop: '16px',
-    borderTop: '1px solid #e2e8f0',
-  },
-  drawerActions: {
-    display: 'flex',
-    gap: '12px',
-  },
-  introButton: {
-    flex: 1,
-    background: '#0d9488',
-    color: 'white',
-    border: 'none',
-    padding: '12px 20px',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    borderRadius: '8px',
-    cursor: 'pointer',
-  },
-  reportButton: {
-    background: 'transparent',
-    color: '#64748b',
-    border: '1px solid #e2e8f0',
-    padding: '12px 16px',
-    fontSize: '0.9rem',
-    fontWeight: 500,
-    borderRadius: '8px',
-    cursor: 'pointer',
-  },
-  modalOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0,0,0,0.5)',
-    zIndex: 300,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '20px',
-  },
-  modal: {
-    background: 'white',
-    borderRadius: '16px',
-    width: '100%',
-    maxWidth: '500px',
-    maxHeight: '90vh',
-    overflowY: 'auto',
-    position: 'relative',
-    padding: '32px',
-  },
-  modalLarge: {
-    background: 'white',
-    borderRadius: '16px',
-    width: '100%',
-    maxWidth: '680px',
-    maxHeight: '90vh',
-    overflowY: 'auto',
-    position: 'relative',
-    padding: '32px',
-  },
-  modalTitle: {
-    fontSize: '1.5rem',
-    fontWeight: 700,
-    color: '#1e293b',
-    marginBottom: '8px',
-  },
-  modalSubtitle: {
-    color: '#64748b',
-    fontSize: '0.95rem',
-    marginBottom: '24px',
-    lineHeight: 1.5,
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-  },
-  formSection: {
-    padding: '20px',
-    background: '#f8fafc',
-    borderRadius: '12px',
-    marginBottom: '8px',
-  },
-  formSectionTitle: {
-    fontSize: '1rem',
-    fontWeight: 600,
-    color: '#1e293b',
-    marginBottom: '16px',
-    paddingBottom: '8px',
-    borderBottom: '1px solid #e2e8f0',
-  },
-  formRow: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '16px',
-  },
-  formGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    marginBottom: '12px',
-  },
-  formLabel: {
-    fontSize: '0.85rem',
-    fontWeight: 600,
-    color: '#475569',
-    marginBottom: '6px',
-  },
-  formHint: {
-    fontSize: '0.8rem',
-    color: '#94a3b8',
-    marginTop: '4px',
-    marginBottom: '8px',
-  },
-  formHintPrivate: {
-    fontSize: '0.8rem',
-    color: '#0d9488',
-    marginTop: '8px',
-    marginBottom: '8px',
-    padding: '8px 12px',
-    background: 'rgba(13, 148, 136, 0.08)',
-    borderRadius: '6px',
-    borderLeft: '3px solid #0d9488',
-  },
-  formInput: {
-    padding: '10px 14px',
-    border: '1px solid #cbd5e1',
-    borderRadius: '8px',
-    fontSize: '0.95rem',
-    outline: 'none',
-  },
-  formSelect: {
-    padding: '10px 14px',
-    border: '1px solid #cbd5e1',
-    borderRadius: '8px',
-    fontSize: '0.95rem',
-    outline: 'none',
-    background: 'white',
-  },
-  formTextarea: {
-    padding: '10px 14px',
-    border: '1px solid #cbd5e1',
-    borderRadius: '8px',
-    fontSize: '0.95rem',
-    outline: 'none',
-    resize: 'vertical',
-    fontFamily: 'inherit',
-  },
-  submitButton: {
-    background: '#0d9488',
-    color: 'white',
-    border: 'none',
-    padding: '12px 20px',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    borderRadius: '8px',
-    cursor: 'pointer',
-    marginTop: '8px',
-  },
-  reportSubmitButton: {
-    background: '#ef4444',
-    color: 'white',
-    border: 'none',
-    padding: '12px 20px',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    borderRadius: '8px',
-    cursor: 'pointer',
-    marginTop: '8px',
-  },
-  footer: {
-    background: '#020617',
-    padding: '28px 24px',
-    textAlign: 'center',
-    color: '#94a3b8',
-    marginTop: '48px',
-  },
-  footerTagline: {
-    marginTop: '8px',
-    fontSize: '0.9rem',
-    fontStyle: 'italic',
-  },
 }
