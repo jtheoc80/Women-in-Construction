@@ -51,14 +51,8 @@ export function ProfilePill({ profile: legacyProfile, onEditProfile, onGoToListi
     }
   }, [open])
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="h-11 w-11 animate-pulse rounded-full bg-white/10 sm:w-32" />
-    )
-  }
-
-  // Not authenticated - show sign in button
+  // Show sign-in button by default (loading or not authenticated)
+  // This prevents the "lazy load" flash - most users are not logged in
   if (!user) {
     return (
       <Link
@@ -68,6 +62,13 @@ export function ProfilePill({ profile: legacyProfile, onEditProfile, onGoToListi
         <span className="hidden sm:inline">Sign in</span>
         <User className="h-5 w-5 sm:hidden" />
       </Link>
+    )
+  }
+
+  // Show loading state only when we know user exists but profile is still loading
+  if (loading) {
+    return (
+      <div className="h-11 w-11 animate-pulse rounded-full bg-white/10 sm:w-32" />
     )
   }
 
