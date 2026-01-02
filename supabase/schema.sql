@@ -190,7 +190,10 @@ create trigger listings_updated_at
 -- RLS for listings
 alter table public.listings enable row level security;
 
--- Anyone can view active listings (excluding private full_address)
+-- Prevent anon/authenticated roles from selecting the private full_address column
+revoke select (full_address) on public.listings from anon, authenticated;
+
+-- Anyone can view active listings (excluding private full_address via column privileges)
 create policy "Active listings are viewable by everyone"
   on public.listings for select
   using (is_active = true);
