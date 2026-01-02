@@ -246,7 +246,14 @@ create policy "Listing photos are viewable by everyone"
 create policy "Authenticated users can insert photos"
   on public.listing_photos for insert
   to authenticated
-  with check (true);
+  with check (
+    exists (
+      select 1
+      from public.listings l
+      where l.id = listing_photos.listing_id
+        and l.user_id = auth.uid()
+    )
+  );
 
 -- ============================================
 -- INTRO REQUESTS TABLE
