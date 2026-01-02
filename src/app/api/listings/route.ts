@@ -193,7 +193,7 @@ export async function GET() {
         created_at,
         cover_photo_url,
         photo_urls,
-        poster_profiles (
+        poster_profiles!poster_profile_id (
           id,
           display_name,
           company,
