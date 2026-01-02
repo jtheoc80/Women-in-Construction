@@ -151,6 +151,52 @@ function validateRequest(body: unknown): { valid: true; data: CreateListingReque
 }
 
 /**
+ * GET /api/listings
+ * Fetch all active listings with related profile and photo data
+ * 
+ * Response: Array of listings with poster_profiles and listing_photos
+ */
+export async function GET() {
+  try {
+    const adminClient = createAdminClient()
+
+    // Fetch all active listings with related data
+    const { data: listings, error } = await adminClient
+      .from('listings')
+      .select(`
+        *,
+        poster_profiles (
+          id,
+          display_name,
+          company,
+          role
+        ),
+        listing_photos (
+          id,
+          listing_id,
+          storage_path,
+          sort_order
+        )
+      `)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching listings:', error)
+      // Return empty array on error to prevent frontend from breaking
+      return NextResponse.json([])
+    }
+
+    // Return empty array if no listings found
+    return NextResponse.json(listings || [])
+  } catch (error) {
+    console.error('Unexpected error fetching listings:', error)
+    // Return empty array on error to prevent frontend from breaking
+    return NextResponse.json([])
+  }
+}
+
+/**
  * POST /api/listings
  * Create a new listing with profile, contact info, and photos
  * 
