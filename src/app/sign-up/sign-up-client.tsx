@@ -54,7 +54,7 @@ export function SignUpClient() {
     setError(null)
 
     try {
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
@@ -82,7 +82,37 @@ export function SignUpClient() {
         router.push(safeNext)
         router.refresh()
       } else {
-        // Confirmation email sent
+        // In development mode with DEV_AUTO_CONFIRM, auto-confirm the user
+        const isDev = process.env.NODE_ENV === 'development'
+        const devAutoConfirm = process.env.NEXT_PUBLIC_DEV_AUTO_CONFIRM === 'true'
+        
+        if (isDev && devAutoConfirm && signUpData.user) {
+          try {
+            const res = await fetch('/api/auth/dev-confirm', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: signUpData.user.id }),
+            })
+            
+            if (res.ok) {
+              // Sign in the user after auto-confirmation
+              const { error: signInError } = await supabase.auth.signInWithPassword({
+                email: email.trim(),
+                password,
+              })
+              
+              if (!signInError) {
+                router.push(safeNext)
+                router.refresh()
+                return
+              }
+            }
+          } catch (devErr) {
+            console.warn('Dev auto-confirm failed, falling back to email confirmation:', devErr)
+          }
+        }
+        
+        // Confirmation email sent (or dev confirm failed)
         setConfirmationSent(true)
       }
     } finally {
@@ -127,6 +157,15 @@ export function SignUpClient() {
                 <p className="text-xs text-white/50">
                   Didn&apos;t receive the email? Check your spam folder.
                 </p>
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                    <p className="text-xs text-amber-400">
+                      <strong>Dev tip:</strong> To skip email verification during testing, add{' '}
+                      <code className="rounded bg-white/10 px-1 py-0.5">NEXT_PUBLIC_DEV_AUTO_CONFIRM=true</code>{' '}
+                      to your <code className="rounded bg-white/10 px-1 py-0.5">.env.local</code> file and restart the dev server.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
