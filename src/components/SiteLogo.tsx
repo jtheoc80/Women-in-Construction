@@ -114,7 +114,7 @@ export function SiteLogo({
   return (
     <span
       className={cn(
-        'inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 ring-1 ring-white/10',
+        'inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white ring-1 ring-black/10',
         className
       )}
       role="img"
