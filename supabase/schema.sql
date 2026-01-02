@@ -135,11 +135,18 @@ create policy "Service role can read contacts"
   on public.profile_contacts for select
   using (false); -- Deny all direct reads, use service role for controlled access
 
--- Authenticated users can insert contacts
+-- Authenticated users can insert contacts, but only for their own poster profiles
 create policy "Authenticated users can insert contacts"
   on public.profile_contacts for insert
   to authenticated
-  with check (true);
+  with check (
+    exists (
+      select 1
+      from public.poster_profiles pp
+      where pp.id = profile_id
+        and pp.user_id = auth.uid()
+    )
+  );
 
 -- ============================================
 -- LISTINGS TABLE
