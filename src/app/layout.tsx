@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 
-// Use NEXT_PUBLIC_SITE_URL for metadataBase to support custom domains
-// Falls back to production domain if not set
+// Use NEXT_PUBLIC_SITE_URL for metadataBase to set the canonical/primary domain
+// Falls back to the primary production domain if not set
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://sitesistersconstruction.com'
 
 export const metadata: Metadata = {
