@@ -7,8 +7,27 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 // Primary domain for canonical redirects
 const PRIMARY_DOMAIN = 'sitesistersconstruction.com'
 
+// Routes that require authentication
+const PROTECTED_ROUTES = ['/design', '/app', '/account', '/inbox', '/browse']
+
+// Routes that should redirect to /design if already authenticated
+const AUTH_ROUTES = ['/sign-in', '/sign-up', '/signup']
+
+function isProtectedRoute(pathname: string): boolean {
+  return PROTECTED_ROUTES.some(route => 
+    pathname === route || pathname.startsWith(`${route}/`)
+  )
+}
+
+function isAuthRoute(pathname: string): boolean {
+  return AUTH_ROUTES.some(route => 
+    pathname === route || pathname.startsWith(`${route}/`)
+  )
+}
+
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || ''
+  const { pathname } = request.nextUrl
   
   // Redirect non-primary domains to the primary domain (except localhost/preview deployments)
   if (
@@ -58,7 +77,31 @@ export async function middleware(request: NextRequest) {
   )
 
   // Refresh session if expired - required for Server Components
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Handle protected routes - redirect to sign-in if not authenticated
+  if (isProtectedRoute(pathname) && !user) {
+    const signInUrl = new URL('/sign-in', request.url)
+    signInUrl.searchParams.set('next', pathname)
+    return NextResponse.redirect(signInUrl)
+  }
+
+  // Handle auth routes - redirect to /design if already authenticated
+  if (isAuthRoute(pathname) && user) {
+    const next = request.nextUrl.searchParams.get('next')
+    const redirectUrl = next && next.startsWith('/') ? next : '/design'
+    return NextResponse.redirect(new URL(redirectUrl, request.url))
+  }
+
+  // Legacy signup redirect to new sign-up
+  if (pathname === '/signup') {
+    const signUpUrl = new URL('/sign-up', request.url)
+    // Preserve query params
+    request.nextUrl.searchParams.forEach((value, key) => {
+      signUpUrl.searchParams.set(key, value)
+    })
+    return NextResponse.redirect(signUpUrl)
+  }
 
   return response
 }
