@@ -24,8 +24,6 @@ export function AccountProfileForm({ initialProfile }: { initialProfile: Profile
 
   const [firstName, setFirstName] = useState(initialProfile?.first_name || '')
   const [homeCity, setHomeCity] = useState(initialProfile?.home_city || '')
-  const [company, setCompany] = useState(initialProfile?.company || '')
-  const [role, setRole] = useState(initialProfile?.role || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -50,8 +48,6 @@ export function AccountProfileForm({ initialProfile }: { initialProfile: Profile
       const payload = {
         first_name: firstName.trim() || null,
         home_city: homeCity.trim() || null,
-        company: company.trim() || null,
-        role: role.trim() || null,
         display_name: (firstName.trim() || 'New user').trim(),
       }
 
@@ -120,31 +116,18 @@ export function AccountProfileForm({ initialProfile }: { initialProfile: Profile
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="company" className="text-slate-700">
-              Company
-            </Label>
-            <Input
-              id="company"
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-              placeholder="Turner Construction"
-              className="h-12 text-base"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="role" className="text-slate-700">
-              Role / Title
-            </Label>
-            <Input
-              id="role"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              placeholder="Electrician, Site Supervisor, etc."
-              className="h-12 text-base"
-            />
-          </div>
+          {/* Display phone if user signed up with phone */}
+          {initialProfile?.phone && (
+            <div className="space-y-2">
+              <Label className="text-slate-700">
+                Phone
+              </Label>
+              <p className="text-sm text-slate-600">{initialProfile.phone}</p>
+              <p className="text-xs text-slate-500">
+                Your phone number is never shown publicly.
+              </p>
+            </div>
+          )}
 
           {error && <p className="text-sm text-red-600">{error}</p>}
           {saved && !error && (
