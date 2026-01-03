@@ -123,14 +123,13 @@ export function PostListingModal({ open, onClose, onSuccess }: PostListingModalP
     { title: 'Contact', description: 'How to reach you' },
   ]
 
-  // Pre-fill from auth profile
+  // Pre-fill display name from auth profile
   React.useEffect(() => {
     if (open && profile) {
       setProfileData(prev => ({
         ...prev,
         displayName: prev.displayName || profile.display_name || profile.first_name || '',
-        company: prev.company || profile.company || '',
-        role: prev.role || profile.role || '',
+        // company and role are collected fresh for each listing
       }))
     }
   }, [open, profile])
