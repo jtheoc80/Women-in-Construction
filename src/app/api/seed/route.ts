@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { seedProfiles, seedListings } from '@/lib/seed-data'
+import { seedProfiles, seedListings, seedJobsites, seedHubs } from '@/lib/seed-data'
 
 // Only allow in development or with secret key
 const SEED_SECRET = process.env.SEED_SECRET || 'development-seed-secret'
@@ -64,6 +64,73 @@ export async function POST(req: NextRequest) {
       }
       results.push({ step: 'Clear existing demo data', success: true })
     }
+
+    // Step 0.5: Seed jobsites and hubs
+    let jobsitesSeeded = 0
+    for (const jobsite of seedJobsites) {
+      const { error: jobsiteError } = await supabase
+        .from('jobsites')
+        .upsert({
+          name: jobsite.name,
+          city: jobsite.city,
+          state: jobsite.state,
+          slug: jobsite.slug,
+          lat: jobsite.lat,
+          lng: jobsite.lng,
+          description: jobsite.description,
+          operator: jobsite.operator,
+          project_type: jobsite.project_type,
+          is_active: true,
+        }, { onConflict: 'slug' })
+
+      if (jobsiteError) {
+        results.push({
+          step: `Seed jobsite ${jobsite.name}`,
+          success: false,
+          error: jobsiteError.message,
+        })
+      } else {
+        jobsitesSeeded++
+      }
+    }
+    results.push({ step: 'Seed jobsites', success: true, details: `Seeded ${jobsitesSeeded} jobsites` })
+
+    // Fetch jobsite IDs for hubs
+    const { data: allJobsites } = await supabase.from('jobsites').select('id, slug')
+    const jobsiteMap = new Map(allJobsites?.map(j => [j.slug, j.id]) || [])
+
+    let hubsSeeded = 0
+    for (const hub of seedHubs) {
+      const jobsiteId = jobsiteMap.get(hub.jobsiteSlug)
+      if (!jobsiteId) continue
+
+      // Check if hub exists to avoid duplicates (since no unique constraint on name+jobsite_id)
+      const { data: existingHub } = await supabase
+        .from('hubs')
+        .select('id')
+        .eq('jobsite_id', jobsiteId)
+        .eq('name', hub.name)
+        .single()
+
+      if (!existingHub) {
+        const { error: hubError } = await supabase
+          .from('hubs')
+          .insert({
+            jobsite_id: jobsiteId,
+            name: hub.name,
+            commute_min: hub.commuteMin,
+            commute_max: hub.commuteMax,
+            description: hub.description,
+          })
+        
+        if (hubError) {
+          console.error(`Error seeding hub ${hub.name}:`, hubError)
+        } else {
+          hubsSeeded++
+        }
+      }
+    }
+    results.push({ step: 'Seed hubs', success: true, details: `Seeded ${hubsSeeded} hubs` })
 
     // Step 1: Create demo users via Supabase Auth
     const createdUsers: { id: string; email: string; profileIndex: number }[] = []
